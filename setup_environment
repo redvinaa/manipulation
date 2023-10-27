@@ -1,0 +1,82 @@
+#! /bin/bash
+
+REPO_ROOT=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
+## Source workspace specific preferences
+export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+export GAZEBO_MASTER_IP=127.0.0.1
+export GAZEBO_MASTER_URI=127.0.0.1:11345
+export GAZEBO_MODEL_PATH="$REPO_ROOT/gazebo_models"
+export GAZEBO_PLUGIN_PATH="/usr/lib/x86_64-linux-gnu/gazebo-11/plugins"
+export GAZEBO_RESOURCE_PATH="/usr/share/gazebo-11"
+export USER="ubuntu"
+export IP=`hostname -I | cut -d ' ' -f 1`
+
+
+if [[ ! -f "${REPO_ROOT}/.env" ]]; then
+  print_warning ".env file missing"
+else
+    set -a
+    source $REPO_ROOT/.env
+    set +a
+fi
+
+
+## Source ROS setup scripts
+if [ -f "/opt/ros/${ROS_DISTRO}/setup.bash" ]; then
+    source "/opt/ros/${ROS_DISTRO}/setup.bash"
+fi
+
+if [ -f "${REPO_ROOT}/workspace/install/setup.bash" ]; then
+    source "${REPO_ROOT}/workspace/install/setup.bash"
+fi
+
+if [ -f "/usr/share/colcon_argcomplete/hook/colcon-argcomplete.bash" ]; then
+    source "/usr/share/colcon_argcomplete/hook/colcon-argcomplete.bash"
+fi
+
+## Init NodeStrategy to avoid autocomplete hang on first tab
+# python3 -c "from ros2cli.node.strategy import NodeStrategy; NodeStrategy(None)"
+
+## Set default name (emoji) and color
+if [ -z "$MY_EMOJI" ]; then export MY_EMOJI="♻️ "; fi
+if [ -z "$MY_COLOR" ]; then export MY_COLOR=$(shuf -i 30-37 -n 1); fi
+
+## Set PS1
+if [ -z "$PS" ]; then
+    export PS=">> "
+fi
+if [ "$DISABLE_BLESH" != "true" ] && [ "$DISABLE_BLESH" != "True" ]; then
+    export PS1="\[\e[1;${MY_COLOR}m\]$PS\[\e[m\]";
+else
+    export PS1="${MY_EMOJI} \[\e[1;${MY_COLOR}m\]\W\[\e[m\] ";
+fi
+
+# Enable completion
+if [ -f $HOME/git-completion.bash ]; then
+    source $HOME/git-completion.bash
+fi
+
+if [ -f /etc/bash_completion ]; then
+    source /etc/bash_completion
+fi
+
+## Set up BLESH
+if [ "$DISABLE_BLESH" != "true" ] && [ "$DISABLE_BLESH" != "True" ]; then
+    source /home/ubuntu/ble-0.4.0-devel3/ble.sh --rcfile /home/ubuntu/manipulation/.blerc
+fi
+
+## Set aliases
+alias xop='xdg-open'
+alias brcs='source ~/.bashrc'
+alias brcv='vim ~/.bashrc'
+alias g='git status'
+alias gf='git fetch'
+alias gv='git log --graph --abbrev-commit --all --decorate --format=format:"%C(bold blue)%h%C(reset) - %C(bold green)(%ar)%C(reset) %C(white)%s%C(reset) %C(dim white)- %an%C(reset)%C(auto)%d%C(reset)"'
+alias gd="git diff"
+alias gds="git diff --staged"
+alias supd="git submodule update --init --recursive"
+alias rviz="rviz2 -d $HOME/manipulation/rviz_config.rviz"
+alias teleop='ros2 run teleop_twist_keyboard teleop_twist_keyboard'
+
+exec "$@"

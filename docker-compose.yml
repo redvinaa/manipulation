@@ -1,0 +1,28 @@
+version: '2.4'
+
+services:
+  manipulation:
+    image: manipulation
+    build: .
+    container_name: manipulation
+    network_mode: host
+    environment:
+      - DISPLAY
+      - MAKEFLAGS="-j8"
+      - CCACHE_DIR="/home/ubuntu/.cache/ccache"
+    logging:
+      driver: journald
+    stdin_open: true
+    tty: true
+    stop_signal: SIGINT
+    privileged: true
+    volumes:
+      - /dev:/dev
+      - ./:/home/ubuntu/manipulation
+      - ~/.gitconfig:/home/ubuntu/.gitconfig
+      - ~/.config/nvim:/home/ubuntu/.config/nvim
+      - ~/.config/coc:/home/ubuntu/.config/coc
+      - ~/.local/share/nvim:/home/ubuntu/.local/share/nvim
+      - ~/.vim:/home/ubuntu/.vim
+      - ~/.ssh:/home/ubuntu/.ssh
+      - ~/.bash_history:/home/ubuntu/.bash_history
