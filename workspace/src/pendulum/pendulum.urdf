@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<robot name="pendulum">
+
+    <!-- Used only to publish torque from joint_state_publisher -->
+  <joint name="pendulum_joint" type="revolute">
+    <limit lower="-3.14" upper="3.14"/>
+  </joint>
+  <joint name="P_gain" type="revolute">
+    <limit lower="0.0" upper="5.0"/>
+  </joint>
+  <joint name="I_gain" type="revolute">
+    <limit lower="0.0" upper="5.0"/>
+  </joint>
+  <joint name="D_gain" type="revolute">
+    <limit lower="0.0" upper="5.0"/>
+  </joint>
+
+</robot>
