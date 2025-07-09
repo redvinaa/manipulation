@@ -1,6 +1,6 @@
 # syntax = docker/dockerfile:1.3
 
-ARG FROM_IMAGE=ros:humble
+ARG FROM_IMAGE=ros:jazzy
 
 # Multi-stage for caching
 FROM $FROM_IMAGE AS cacher
@@ -45,11 +45,14 @@ RUN \
 # Set root password
 RUN echo "root:enjoy"|chpasswd
 
-# Create new non-priviliged user
-RUN useradd ubuntu --create-home --shell /bin/bash && \
-    echo "ubuntu:enjoy"|chpasswd && \
+# Set user password
+ARG USER_PASSWORD
+RUN if [ -n "$USER_PASSWORD" ]; then \
+        echo "ubuntu:$USER_PASSWORD" | chpasswd; \
+    else \
+        passwd -d ubuntu; \
+    fi && \
     usermod -aG sudo,video,dialout ubuntu
-USER root
 
 ## Install Eigen library
 RUN git clone https://gitlab.com/libeigen/eigen.git /usr/include/eigen
@@ -68,13 +71,6 @@ RUN \
     colcon metadata update
 
 
-# Install newer libignition-math6 (6.15)
-RUN \
-    sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-stable.list' && \
-    wget http://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add - && \
-    apt-get update && \
-    apt-get install libignition-math6-dev -y
-
 # Install dependencies
 WORKDIR /home/ubuntu/manipulation/workspace
 COPY --from=cacher /tmp/manipulation/workspace/src ./src
@@ -92,36 +88,10 @@ RUN \
 COPY pip-dependencies.txt pip-dependencies.txt
 RUN \
     --mount=type=cache,target=/root/.cache/pip,mode=0777,sharing=locked \
-    pip3 install -r pip-dependencies.txt
+    pip3 install -r pip-dependencies.txt --break-system-packages
 
 # PEP257 errors are not shown unless you run ament_pep257 on the command line
 # see https://github.com/ament/ament_lint/issues/317
-
-# Install neovim
-WORKDIR /home/ubuntu
-RUN \
-    wget https://github.com/neovim/neovim/releases/download/v0.9.4/nvim-linux64.tar.gz && \
-    tar -xzvf nvim-linux64.tar.gz && \
-    ln -s /home/ubuntu/nvim-linux64/bin/nvim /usr/local/bin/nvim
-
-# Install nodejs
-RUN \
-    apt install -y ca-certificates gnupg && \
-    mkdir -p /etc/apt/keyrings && \
-    curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | \
-        gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg && \
-    NODE_MAJOR=20 && \
-    echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" | \
-        tee /etc/apt/sources.list.d/nodesource.list && \
-    apt update && \
-    apt install -y --reinstall nodejs
-
-
-# Install ble.sh
-RUN \
-    curl -L https://github.com/akinomyoga/ble.sh/releases/download/v0.4.0-devel3/ble-0.4.0-devel3.tar.xz | tar xJf - -C /home/ubuntu && \
-    echo "source /home/ubuntu/manipulation/setup_environment" >> /home/ubuntu/.bashrc && \
-    sed -e '/[ -z "$PS1" ] && return/s/^/#/g' -i /home/ubuntu/.bashrc
 
 # Setup completion
 RUN curl https://raw.githubusercontent.com/git/git/master/contrib/completion/git-completion.bash \
@@ -142,7 +112,10 @@ RUN ln -s /usr/local/bin/nvim /usr/local/bin/vim
 USER ubuntu
 
 # Start in this folder
-WORKDIR /home/ubuntu/manipulation
+WORKDIR /home/ubuntu/manipulation/workspace
+
+RUN \
+    echo "source /home/ubuntu/manipulation/setup_environment" >> /home/ubuntu/.bashrc
 
 ENTRYPOINT ["/home/ubuntu/manipulation/setup_environment"]
 CMD ["bash"]

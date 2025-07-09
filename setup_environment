@@ -61,11 +61,6 @@ if [ -f /etc/bash_completion ]; then
     source /etc/bash_completion
 fi
 
-## Set up BLESH
-if [ "$DISABLE_BLESH" != "true" ] && [ "$DISABLE_BLESH" != "True" ]; then
-    source /home/ubuntu/ble-0.4.0-devel3/ble.sh --rcfile /home/ubuntu/manipulation/.blerc
-fi
-
 ## Set aliases
 alias xop='xdg-open'
 alias brcs='source ~/.bashrc'
@@ -78,5 +73,6 @@ alias gds="git diff --staged"
 alias supd="git submodule update --init --recursive"
 alias rviz="rviz2 -d $HOME/manipulation/rviz_config.rviz"
 alias teleop='ros2 run teleop_twist_keyboard teleop_twist_keyboard'
+alias build="cd ~/manipulation/workspace && colcon build && source install/setup.bash"
 
 exec "$@"
