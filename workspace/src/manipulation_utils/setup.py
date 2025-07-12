@@ -1,6 +1,6 @@
 from setuptools import setup
 
-package_name = 'planar_manipulator'
+package_name = 'manipulation_utils'
 
 setup(
     name=package_name,
@@ -15,13 +15,11 @@ setup(
     zip_safe=True,
     maintainer='maintainer',
     maintainer_email='redvinaa@gmail.com',
-    description='Excercises with a planar 2-link manipulator',
+    description='Util functions for the manipulation excercises',
     license='All rights reserved',
     extras_require={'test': ['pytest']},
     entry_points={
         'console_scripts': [
-            'planar_manipulator = planar_manipulator.planar_manipulator:main',
-            'grasp_pose = planar_manipulator.grasp_pose:main',
         ],
     },
 )

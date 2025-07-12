@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>planar_manipulator</name>
+  <name>manipulation_utils</name>
   <version>0.0.0</version>
-  <description>Excercises with a planar 2-link manipulator</description>
+  <description>Util functions for the manipulation excercises</description>
   <maintainer email="maintainer@enjoyrobotics.com">enjoyrobotics</maintainer>
   <license>All rights reserved</license>
 
@@ -11,7 +11,6 @@
   <depend>geometry_msgs</depend>
   <depend>sensor_msgs</depend>
   <depend>visualization_msgs</depend>
-  <depend>manipulation_utils</depend>
 
   <test_depend>ament_flake8</test_depend>
   <test_depend>ament_pep257</test_depend>
