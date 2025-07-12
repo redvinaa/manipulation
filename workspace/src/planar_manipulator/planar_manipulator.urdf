@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<robot name="pendulum">
+
+  <joint name="joint_0" type="revolute">
+    <limit lower="-3.14" upper="3.14"/>
+  </joint>
+  <joint name="joint_1" type="revolute">
+    <limit lower="-3.14" upper="3.14"/>
+  </joint>
+
+</robot>
