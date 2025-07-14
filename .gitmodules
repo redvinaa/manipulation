@@ -1,0 +1,6 @@
+[submodule "workspace/src/UR_and_deps/Universal_Robots_ROS2_Driver"]
+	path = workspace/src/UR_and_deps/Universal_Robots_ROS2_Driver
+	url = https://github.com/UniversalRobots/Universal_Robots_ROS2_Driver
+[submodule "workspace/src/UR_and_deps/Universal_Robots_ROS2_GZ_Simulation"]
+	path = workspace/src/UR_and_deps/Universal_Robots_ROS2_GZ_Simulation
+	url = git@github.com:UniversalRobots/Universal_Robots_ROS2_GZ_Simulation.git
