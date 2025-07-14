@@ -4,7 +4,7 @@
   <name>planar_manipulator</name>
   <version>0.0.0</version>
   <description>Excercises with a planar 2-link manipulator</description>
-  <maintainer email="maintainer@enjoyrobotics.com">enjoyrobotics</maintainer>
+  <maintainer email="redvinaa@gmail.com">Vince Reda</maintainer>
   <license>All rights reserved</license>
 
   <depend>rclpy</depend>

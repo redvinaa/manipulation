@@ -4,7 +4,7 @@
   <name>pendulum</name>
   <version>0.0.0</version>
   <description>Simple pendulum model with a controller</description>
-  <maintainer email="maintainer@enjoyrobotics.com">enjoyrobotics</maintainer>
+  <maintainer email="redvinaa@gmail.com">Vince Reda</maintainer>
   <license>All rights reserved</license>
 
   <depend>rclpy</depend>

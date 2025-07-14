@@ -43,7 +43,7 @@ RUN \
         libllvm15
 
 # Set root password
-RUN echo "root:enjoy"|chpasswd
+RUN echo "root:passwd" | chpasswd
 
 # Set user password
 ARG USER_PASSWORD
