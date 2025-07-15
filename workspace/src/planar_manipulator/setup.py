@@ -22,6 +22,8 @@ setup(
         'console_scripts': [
             'planar_manipulator = planar_manipulator.planar_manipulator:main',
             'grasp_pose = planar_manipulator.grasp_pose:main',
+            'planar_manipulator_velocity_control = '
+            'planar_manipulator.planar_manipulator_velocity_control:main',
         ],
     },
 )
