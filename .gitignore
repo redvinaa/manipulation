@@ -2,3 +2,6 @@ __pycache__
 /workspace/build
 /workspace/install
 /workspace/log
+/workspace/src/UR_and_deps
+!/workspace/src/UR_and_deps/Universal_Robots_ROS2_GZ_Simulation
+!/workspace/src/UR_and_deps/Universal_Robots_ROS2_Driver
