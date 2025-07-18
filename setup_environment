@@ -73,6 +73,6 @@ alias gds="git diff --staged"
 alias supd="git submodule update --init --recursive"
 alias rviz="rviz2 -d $HOME/manipulation/rviz_config.rviz"
 alias teleop='ros2 run teleop_twist_keyboard teleop_twist_keyboard'
-alias build="cd ~/manipulation/workspace && colcon build && source install/setup.bash"
+alias build="cd ~/manipulation/workspace && colcon build --cmake-args ' -DCMAKE_EXPORT_COMPILE_COMMANDS=ON' --packages-select "
 
 exec "$@"
