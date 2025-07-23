@@ -4,6 +4,7 @@ project(basic_pick_and_place_ur)
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(std_msgs REQUIRED)
 find_package(moveit_ros_planning_interface REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(rviz_visual_tools REQUIRED)
@@ -32,7 +33,24 @@ target_include_directories(quadratic_programming PUBLIC ${EIGEN3_INCLUDE_DIR})
 target_compile_features(quadratic_programming PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
 target_link_libraries(quadratic_programming OsqpEigen::OsqpEigen)
 
-install(TARGETS robot_painter quadratic_programming
+add_executable(differential_ik_optimization src/differential_ik_optimization.cpp)
+target_include_directories(differential_ik_optimization PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include/${PROJECT_NAME}>)
+target_compile_features(differential_ik_optimization PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
+target_link_libraries(differential_ik_optimization OsqpEigen::OsqpEigen)
+ament_target_dependencies(
+  differential_ik_optimization
+  "std_msgs"
+  "rclcpp"
+  "moveit_ros_planning_interface"
+  "geometry_msgs"
+  "rviz_visual_tools"
+  "tf2_eigen"
+  "Eigen3"
+)
+
+install(TARGETS robot_painter quadratic_programming differential_ik_optimization
   DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)
