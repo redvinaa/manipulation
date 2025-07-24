@@ -113,6 +113,12 @@ public:
     target_velocity.head<3>() = target_velocity_linear;
     target_velocity.tail<3>().setZero();  // No angular velocity
 
+    // Get jacobian
+    robot_state.setJointGroupPositions(planning_group_, move_group_->getCurrentJointValues());
+    robot_state.update();
+    const auto * jmg = robot_state.getJointModelGroup(planning_group_);
+    Eigen::MatrixXd jacobian = robot_state.getJacobian(jmg);
+
     // Publish visualization of the target and eef poses
     if (!last_target_pose_) {
       last_target_pose_ = target_position;
@@ -124,22 +130,20 @@ public:
         current_position_msg.position.x, current_position_msg.position.y,
         current_position_msg.position.z);
 
+      // Target line is blue
       visual_tools_->publishLine(
-        *last_target_pose_, target_position, rviz_visual_tools::RED, rviz_visual_tools::LARGE);
+        *last_target_pose_, target_position, rviz_visual_tools::BLUE, rviz_visual_tools::LARGE);
+
+      // EEF line is green normally, red close to singularity
+      const auto eef_line_color = isCloseToSingularity(jacobian)
+        ? rviz_visual_tools::RED : rviz_visual_tools::GREEN;
       visual_tools_->publishLine(
-        *last_eef_pose_, current_eef_pose, rviz_visual_tools::GREEN,
-        rviz_visual_tools::LARGE);
+        *last_eef_pose_, current_eef_pose, eef_line_color, rviz_visual_tools::LARGE);
       visual_tools_->trigger();
 
       last_target_pose_ = target_position;
       last_eef_pose_.emplace(current_eef_pose);
     }
-
-    // Get jacobian
-    robot_state.setJointGroupPositions(planning_group_, move_group_->getCurrentJointValues());
-    robot_state.update();
-    const auto * jmg = robot_state.getJointModelGroup(planning_group_);
-    Eigen::MatrixXd jacobian = robot_state.getJacobian(jmg);
 
     /* Get optimal joint velocities
      *
@@ -201,6 +205,13 @@ public:
       joint_velocity_msg.data[i] = v_optimal(i);
     }
     joint_velocity_publisher_->publish(joint_velocity_msg);
+  }
+
+  static bool isCloseToSingularity(const Eigen::MatrixXd & jacobian, double threshold = 0.01)
+  {
+    // Check if the Jacobian is close to singular by checking its determinant
+    Eigen::JacobiSVD<Eigen::MatrixXd> svd(jacobian, Eigen::ComputeThinU | Eigen::ComputeThinV);
+    return svd.singularValues().minCoeff() < threshold;
   }
 
 private:
