@@ -152,15 +152,15 @@ public:
      * where V_G is the gripper (eef) velocity and v are the joint velocities
      *
      * This can be rewritten as:
-     * minimize v: 1/2 * v^T * P * v + q^T * v,
-     * where P = J(q)^T * J(q) and q = -J(q)^T * V_G
+     * minimize v: 1/2 * v^T * Q * v + c^T * v,
+     * where Q = J(q)^T * J(q) and c = -J(q)^T * V_G
      *
      * Subject to l ≤ A * v ≤ u,
      * where A should be of size: n_constraints x n_joints,
      * and l, u should be of size n_constraints.
      */
-    Eigen::SparseMatrix<double> P = (jacobian.transpose() * jacobian).sparseView();
-    Eigen::VectorXd q = -jacobian.transpose() * target_velocity;
+    Eigen::SparseMatrix<double> Q = (jacobian.transpose() * jacobian).sparseView();
+    Eigen::VectorXd c = -jacobian.transpose() * target_velocity;
     const size_t num_joints = jmg->getVariableCount();
 
     // TODO: Add position constraints
@@ -176,15 +176,15 @@ public:
 
     RCLCPP_INFO(
       node_->get_logger(),
-      "num_joints: %zu, jacobian: %zu x %zu, P: %zu x %zu, q: %zu, A: %zu x %zu, l: %zu, u: %zu",
-      num_joints, jacobian.rows(), jacobian.cols(), P.rows(), P.cols(), q.size(),
+      "num_joints: %zu, jacobian: %zu x %zu, Q: %zu x %zu, c: %zu, A: %zu x %zu, l: %zu, u: %zu",
+      num_joints, jacobian.rows(), jacobian.cols(), Q.rows(), Q.cols(), c.size(),
       A.rows(), A.cols(), l.size(), u.size());
 
     solver.settings()->setWarmStart(true);
     solver.data()->setNumberOfVariables(num_joints);
     solver.data()->setNumberOfConstraints(num_constraints);
-    solver.data()->setHessianMatrix(P);
-    solver.data()->setGradient(q);
+    solver.data()->setHessianMatrix(Q);
+    solver.data()->setGradient(c);
     solver.data()->setLinearConstraintsMatrix(A);
     solver.data()->setLowerBound(l);
     solver.data()->setUpperBound(u);
