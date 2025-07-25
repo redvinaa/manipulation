@@ -86,6 +86,10 @@ public:
       base_frame_id_, "/rviz_markers", node);
     visual_tools_->deleteAllMarkers();
 
+    // Visualize max x constraint
+    visual_tools_->publishABCDPlane(1, 0, 0, -constrain_x_max_);
+    visual_tools_->trigger();
+
     using rclcpp::contexts::get_global_default_context;
     get_global_default_context()->add_pre_shutdown_callback(
       [this]() {
