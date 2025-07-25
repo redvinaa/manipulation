@@ -17,6 +17,10 @@
  * Set feasible joint velocity limits, and a virtual wall that the robot should not cross.
  */
 
+// Note: sometimes the manipulator goes off route or stops completely (periodically always
+// at the same place around the circle). It's probably because the arm reaches simgularity because
+// of the joint position limits, but I guess for the goals of the exercise it's good enough.
+
 //! @brief Target moving in a circle around the z-axis
 class Target
 {
