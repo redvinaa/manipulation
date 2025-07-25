@@ -172,21 +172,49 @@ public:
     Eigen::VectorXd c = -jacobian.transpose() * target_velocity;
     const size_t num_joints = jmg->getVariableCount();
 
+    /* Calculate eef position constraints
+     * p_G + dt * V_G <= p_G_max
+     * and V_G = J(q) * v
+     *
+     * V_G < = (p_G_max - p_G) / dt
+     * v < J(q)^{-1} * (p_G_max - p_G) / dt
+     */
+    Eigen::Vector3d current_eef_position(
+      current_position_msg.position.x, current_position_msg.position.y,
+      current_position_msg.position.z);
+    Eigen::Vector3d p_G_max;
+    p_G_max <<
+      constrain_x_max_, std::numeric_limits<double>::max(), std::numeric_limits<double>::max();
+
     // TODO: Add position constraints
-    const size_t num_constraints = num_joints;
+    const size_t num_constraints = num_joints + 1;  // +1 for the x position constraint
     Eigen::SparseMatrix<double> A(num_constraints, num_joints);
-    A.setIdentity();
+
+    // Set the first num_joints rows to identity
+    for (size_t i = 0; i < num_joints; ++i) {
+      A.coeffRef(i, i) = 1.0;
+    }
+
+    // set last row to the Jacobian x coordinate row
+    for (size_t i = 0; i < num_joints; ++i) {
+      A.coeffRef(num_constraints - 1, i) = jacobian(0, i);
+    }
+
+    // A last row = Jacobian x coordinate row -> A[-1, :] * v = V_G_x < (x_max - x_G) / dt
+
     Eigen::VectorXd l(num_constraints);
     Eigen::VectorXd u(num_constraints);
     l.setConstant(-max_joint_velocity_);
     u.setConstant(max_joint_velocity_);
+    l(num_joints) = std::numeric_limits<double>::lowest();
+    u(num_joints) = (p_G_max(0) - current_eef_position(0)) / dt_;
 
     OsqpEigen::Solver solver;
 
     RCLCPP_INFO(
       node_->get_logger(),
-      "num_joints: %zu, jacobian: %zu x %zu, Q: %zu x %zu, c: %zu, A: %zu x %zu, l: %zu, u: %zu",
-      num_joints, jacobian.rows(), jacobian.cols(), Q.rows(), Q.cols(), c.size(),
+      "dt: %f, num_joints: %zu, jacobian: %zu x %zu, Q: %zu x %zu, c: %zu, A: %zu x %zu, l: %zu, u: %zu",
+      dt_, num_joints, jacobian.rows(), jacobian.cols(), Q.rows(), Q.cols(), c.size(),
       A.rows(), A.cols(), l.size(), u.size());
 
     solver.settings()->setWarmStart(true);
