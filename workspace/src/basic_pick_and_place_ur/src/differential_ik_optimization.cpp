@@ -62,16 +62,21 @@ public:
   {
     node->declare_parameter("planning_group", "ur_manipulator");
     node->declare_parameter("base_frame_id", "base_link");
-    node->declare_parameter("constrain_x_min", -0.35);
-    node->declare_parameter("constrain_x_max", 0.35);
+    node->declare_parameter("constrain_x_max", 0.0);
     node->declare_parameter("max_joint_velocity", 1.5);
     node->declare_parameter("target_eef_velocity", 0.5);
     planning_group_ = node->get_parameter("planning_group").as_string();
     base_frame_id_ = node->get_parameter("base_frame_id").as_string();
-    constrain_x_min_ = node->get_parameter("constrain_x_min").as_double();
     constrain_x_max_ = node->get_parameter("constrain_x_max").as_double();
     max_joint_velocity_ = node->get_parameter("max_joint_velocity").as_double();
     target_eef_velocity_ = node->get_parameter("target_eef_velocity").as_double();
+    const auto controller_frequency =
+      node->get_parameter("controller_frequency").as_double();
+    if (controller_frequency <= 0.0) {
+      RCLCPP_ERROR(node->get_logger(), "Controller frequency must be positive.");
+      throw std::runtime_error("Invalid controller frequency");
+    }
+    dt_ = 1.0 / controller_frequency;
 
     joint_velocity_publisher_ = node->create_publisher<std_msgs::msg::Float64MultiArray>(
       "/forward_velocity_controller/commands", 1);
@@ -227,9 +232,9 @@ private:
   std::string planning_group_;
   std::string base_frame_id_;
   double max_joint_velocity_;
-  double constrain_x_min_;
   double constrain_x_max_;
   double target_eef_velocity_;
+  double dt_;
 };
 
 int main(int argc, char** argv)
