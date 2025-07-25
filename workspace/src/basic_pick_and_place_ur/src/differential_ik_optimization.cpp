@@ -90,10 +90,10 @@ public:
     visual_tools_->publishABCDPlane(1, 0, 0, -constrain_x_max_);
     visual_tools_->trigger();
 
+    // Publish zero joint velocities to stop the robot
     using rclcpp::contexts::get_global_default_context;
     get_global_default_context()->add_pre_shutdown_callback(
       [this]() {
-        // Publish zero joint velocities to stop the robot
         std_msgs::msg::Float64MultiArray stop_joint_velocity_msg;
         stop_joint_velocity_msg.data.resize(6, 0.0);  // TODO: Get the correct size somehow
         joint_velocity_publisher_->publish(stop_joint_velocity_msg);
