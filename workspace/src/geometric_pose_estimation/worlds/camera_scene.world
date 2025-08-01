@@ -1,0 +1,89 @@
+<?xml version='1.0' ?>
+<sdf version='1.7'>
+  <world name='default'>
+
+    <physics type="ignored">
+      <max_step_size>0.01</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+    </physics>
+
+    <plugin
+      filename="gz-sim-physics-system"
+      name="gz::sim::systems::Physics">
+    </plugin>
+    <plugin
+      filename="gz-sim-user-commands-system"
+      name="gz::sim::systems::UserCommands">
+    </plugin>
+    <plugin
+      filename="gz-sim-scene-broadcaster-system"
+      name="gz::sim::systems::SceneBroadcaster">
+    </plugin>
+    <plugin
+      filename="gz-sim-sensors-system"
+      name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+    <plugin
+      filename="gz-sim-imu-system"
+      name="gz::sim::systems::Imu">
+    </plugin>
+    <plugin
+      filename="gz-sim-contact-system"
+      name="gz::sim::systems::Contact">
+    </plugin>
+
+    <include>
+      <uri>model://ground_plane</uri>
+    </include>
+
+    <include>
+      <uri>model://sun</uri>
+    </include>
+
+    <include>
+      <uri>model://ACE_Coffee_Mug_Kristen_16_oz_cup</uri>
+    </include>
+
+    <!-- static depth (or RGB-D) camera -->
+    <model name="depth_camera">
+      <static>true</static>
+      <pose>0 -0.6 0.2 0 0.2 1.57</pose>
+      <link name="camera_link">
+        <visual name="camera_visual">
+          <geometry>
+            <box>
+              <size>0.2 0.1 0.1</size> <!-- small box to represent the camera -->
+            </box>
+          </geometry>
+        </visual>
+
+        <sensor name="depth_sensor" type="rgbd_camera">
+          <pose>0 0 0 0 0 0</pose>
+          <always_on>true</always_on>
+          <update_rate>1</update_rate>
+          <camera>
+            <horizontal_fov>1.047</horizontal_fov>
+            <image>
+              <width>100</width>
+              <height>100</height>
+            </image>
+            <clip>
+              <near>0.1</near>
+              <far>10.0</far>
+            </clip>
+          </camera>
+          <depth_camera>
+            <min_depth>0.1</min_depth>
+            <max_depth>10.0</max_depth>
+          </depth_camera>
+          <visualize>true</visualize>
+          <!-- ROS 2 bridge topic configuration -->
+          <topic>/camera</topic>
+          <gz_frame_id>depth_camera_link</gz_frame_id>
+        </sensor>
+      </link>
+    </model>
+
+  </world>
+</sdf>
