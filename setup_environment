@@ -4,11 +4,7 @@ REPO_ROOT=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 ## Source workspace specific preferences
 export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
-export GAZEBO_MASTER_IP=127.0.0.1
-export GAZEBO_MASTER_URI=127.0.0.1:11345
-export GAZEBO_MODEL_PATH="$REPO_ROOT/gazebo_models"
-export GAZEBO_PLUGIN_PATH="/usr/lib/x86_64-linux-gnu/gazebo-11/plugins"
-export GAZEBO_RESOURCE_PATH="/usr/share/gazebo-11"
+export GZ_SIM_RESOURCE_PATH="$REPO_ROOT/gazebo_models"
 export USER="ubuntu"
 export IP=`hostname -I | cut -d ' ' -f 1`
 
