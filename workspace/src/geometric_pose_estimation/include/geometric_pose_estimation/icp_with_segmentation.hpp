@@ -53,7 +53,7 @@ namespace ICP
 struct IcpParams
 {
   Scalar max_correspondence_distance = 0.1f;
-  size_t max_iterations = 500;
+  size_t max_iterations = 100;
   Scalar convergence_threshold = 1e-6;
   bool visualize = false;
 };

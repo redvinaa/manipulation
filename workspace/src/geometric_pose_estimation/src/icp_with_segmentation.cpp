@@ -2,6 +2,7 @@
 #include <thread>
 #include <cstdlib>
 #include <fstream>
+#include <iomanip>  // for scientific notation
 
 #include <rclcpp/rclcpp.hpp>
 #include "geometric_pose_estimation/utils.hpp"
@@ -14,7 +15,6 @@ namespace geometric_pose_estimation
 void pointCloudCallback(const sensor_msgs::msg::PointCloud2 & msg)
 {
   RCLCPP_INFO(logger, "===== Received point cloud message =====");
-  visual_tools->deleteAllMarkers();
 
   // Convert pointcloud to eigen
   PCLEigen pcl;
@@ -53,7 +53,7 @@ void pointCloudCallback(const sensor_msgs::msg::PointCloud2 & msg)
   }
   visualizePCL(
     pcl, rviz_visual_tools::Colors::BLUE, 0.005, "pcl_filtered");
-  visual_tools->prompt("Press 'next' to continue with ICP fitting");
+  // visual_tools->prompt("Press 'next' to continue with ICP fitting");
 
   // Fit model using ICP
   ICP::IcpParams params;
@@ -74,8 +74,9 @@ void pointCloudCallback(const sensor_msgs::msg::PointCloud2 & msg)
       pcl, model_points, initial_guess, params);
     const auto error = ICP::calculateSquaredError(
       X_model_sensor * pcl, model_points);
-    RCLCPP_INFO(
-      logger, "ICP fitting completed with error: %.4f", error);
+    RCLCPP_INFO_STREAM(
+      logger, "ICP fitting completed with error: " <<
+      std::scientific << std::setprecision(2) << error);
   } catch (const std::runtime_error & e) {
     RCLCPP_ERROR(logger, "ICP fitting failed: %s", e.what());
     return;
