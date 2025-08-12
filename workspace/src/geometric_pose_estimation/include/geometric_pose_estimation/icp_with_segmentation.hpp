@@ -2,9 +2,6 @@
 #define GEOMETRIC_POSE_ESTIMATION__ICP_WITH_SEGMENTATION_HPP_
 
 // STL includes
-#include <vector>
-#include <thread>
-#include <functional>
 
 // ROS includes
 #include <rclcpp/rclcpp.hpp>
@@ -20,101 +17,119 @@
 namespace geometric_pose_estimation
 {
 
-using Pointcloud = std::vector<Eigen::Vector3f>;
+using Scalar = float;
+using PCLEigen = Eigen::Matrix<Scalar, 3, Eigen::Dynamic, Eigen::ColMajor>;
+using Transform = Eigen::Transform<Scalar, 3, Eigen::Isometry>;
+using Vector = Eigen::Matrix<Scalar, 3, 1>;
 
-using PlaneEquation = Eigen::Vector4f;
+// Note: Global variables are discouraged, but this is a simple example.
+rclcpp::Node::SharedPtr node;
+rclcpp::Logger logger = rclcpp::get_logger("geometric_pose_estimation");
+rviz_visual_tools::RvizVisualToolsPtr visual_tools;
+PCLEigen model_points;
 
-/// @brief Result of the RANSAC algorithm: best plane equation and the number of inliers.
-using RansacResult = std::pair<PlaneEquation, size_t>;
+/// @brief Callback for the point cloud topic.
+void pointCloudCallback(const sensor_msgs::msg::PointCloud2 & pcl);
+rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr pcl_sub;
 
-/// @brief General cost function signature
-using CostFn = std::function<float(float)>;
+/// @brief Publish point cloud to RViz
+void visualizePCL(
+  const PCLEigen & pcl,
+  const rviz_visual_tools::Colors & color,
+  float scale = 0.004f,
+  const std::string & ns = "pcl");
 
-namespace cost_functions
-{
-
-/// @brief Gaussian
-inline float gaussian(float x)
+/// @brief Gaussian cost function
+inline Scalar gaussian(Scalar x)
 {
   return 1 - std::exp(-0.5f * x * x);
 }
 
-/// @brief Truncated least squares
-inline float truncatedLeastSquares(float x)
+/// @brief Load obj file vertices into a pointcloud
+PCLEigen loadObjVertices(const std::string & model_path, size_t throttle = 10);
+
+namespace ICP
 {
-  const float threshold = 1.0;
-  if (std::abs(x) < threshold) {
-    return x * x;
-  } else {
-    return threshold * threshold;
-  }
+struct IcpParams
+{
+  Scalar max_correspondence_distance = 0.1f;
+  size_t max_iterations = 500;
+  Scalar convergence_threshold = 1e-6;
+  bool visualize = false;
+};
+
+[[nodiscard]]
+Vector getCentroid(const PCLEigen & pcl);
+
+/** @brief Get initial guess for ICP
+ *
+ * Rotates source points around source centroid, then moves them to target centroid.
+ */
+Transform getInitialGuess(
+  const Vector & source_centroid,
+  const Vector & target_centroid,
+  const Eigen::Quaternion<Scalar> & rotation = Eigen::Quaternion<Scalar>::Identity());
+
+/** @brief Get initial guess for ICP
+ *
+ * Rotates source points around source centroid, then moves them to target centroid.
+ */
+inline Transform getInitialGuess(
+  const PCLEigen & source_points,
+  const PCLEigen & target_points,
+  const Eigen::Quaternion<Scalar> & rotation = Eigen::Quaternion<Scalar>::Identity())
+{
+  return getInitialGuess(getCentroid(source_points), getCentroid(target_points), rotation);
 }
 
-}  // namespace cost_functions
+/// @brief Perform one iteration of ICP
+Transform performIcpStep(
+  const PCLEigen & source_points,
+  const PCLEigen & target_points,
+  Transform initial_guess,
+  Scalar max_correspondence_distance = 0.1f,
+  bool visualize = false);
 
-/**
- * @brief Class for performing ICP with segmentation.
+/** @brief Perform ICP
  *
- * TODO(redvinaa): This should have been a namespace
+ *  Tries to find the best transformation that moves source_points to target_points
  */
-class IcpWithSegmentation : public rclcpp::Node
+Transform performIcp(
+  const PCLEigen & source_points,
+  const PCLEigen & target_points,
+  Transform initial_guess,
+  IcpParams params = IcpParams());
+
+Scalar calculateSquaredError(
+  const PCLEigen & source_points,
+  const PCLEigen & target_points);
+
+}  // namespace ICP
+
+namespace RANSAC
 {
-public:
-  IcpWithSegmentation();
+/// @brief Coefficients for a plane equation in the form Ax + By + Cz + D = 0
+using PlaneEquation = Eigen::Vector4<Scalar>;
 
-  /** @brief SVD based model fitting
-   *
-   * Correspondence is by nearest neighbor up to max distance.
-   * Moves sensor points to model points, then inverts transform
-   * to decreate effect of partial views
-   */
-  Eigen::Isometry3f fitModelIcp(
-    const Pointcloud & source_points,
-    const Pointcloud & target_points,
-    const Eigen::Isometry3f & initial_guess = Eigen::Isometry3f::Identity(),
-    float max_correspondence_distance = 0.1f,
-    size_t max_iterations = 100,
-    float convergence_threshold = 1e-3);
-
-  [[nodiscard]]
-  static Eigen::Vector3f getCentroid(const Pointcloud & pcl);
-
-  static Pointcloud loadObjVertices(const std::string & model_path, size_t throttle = 10);
-
-  /// @brief Convert PointCloud2 to Pointcloud
-  static Pointcloud convertPointCloud2(const sensor_msgs::msg::PointCloud2 & msg);
-
-  /// @brief Convert Pointcloud to std::vector<Points>
-  static std::vector<geometry_msgs::msg::Point> convertPointcloudToPoints(
-    const Pointcloud & pcl);
-
-  /// @brief Find plane equation using RANSAC
-  static RansacResult ransacFindPlane(
-    const Pointcloud & pcl,
-    CostFn cost_fn,
-    float tolerance = 1e-3,
-    size_t max_iterations = 10);
-
-  /// @brief Remove plane from point cloud based on equation
-  static Pointcloud removePlaneFromPointcloud(
-    const Pointcloud & pcl,
-    const PlaneEquation & plane_equation,
-    float tolerance = 1e-3);
-
-  static rviz_visual_tools::RvizVisualToolsPtr visual_tools_;
-  static rclcpp::Node::SharedPtr vis_node_;
-  static std::thread visual_tools_thread_;
-
-private:
-  /// @brief Callback for the point cloud topic.
-  void pointCloudCallback(const sensor_msgs::msg::PointCloud2 & pcl);
-
-  rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr pcl_sub_;
-  Pointcloud model_points_;
-
-  // Parameters
-  std::string model_path_;
+struct RansacResult
+{
+  PlaneEquation plane_equation;
+  size_t inliers_count;
 };
+
+/// @brief Find plane equation using RANSAC, gaussian cost
+RansacResult findPlane(
+  const PCLEigen & pcl,
+  Scalar tolerance = 1e-3,
+  size_t max_iterations = 20);
+
+/// @brief Remove plane from point cloud based on equation
+PCLEigen removePlaneFromPointcloud(
+  const PCLEigen & pcl,
+  const PlaneEquation & plane_equation,
+  Scalar tolerance = 1e-3);
+
+}  // namespace RANSAC
 
 }  // geometric_pose_estimation
 
