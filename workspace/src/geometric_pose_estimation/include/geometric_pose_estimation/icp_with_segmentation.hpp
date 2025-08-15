@@ -32,8 +32,11 @@ PCLEigen model_points;
 void pointCloudCallback(const sensor_msgs::msg::PointCloud2 & pcl);
 rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr pcl_sub;
 
-/// @brief Publish point cloud to RViz
-void visualizePCL(
+/** @brief Publish point cloud to RViz
+ *
+ * @return Id of the published marker
+ */
+size_t visualizePCL(
   const PCLEigen & pcl,
   const rviz_visual_tools::Colors & color,
   float scale = 0.004f,

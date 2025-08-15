@@ -15,6 +15,7 @@ namespace geometric_pose_estimation
 void pointCloudCallback(const sensor_msgs::msg::PointCloud2 & msg)
 {
   RCLCPP_INFO(logger, "===== Received point cloud message =====");
+  visual_tools->deleteAllMarkers();
 
   // Convert pointcloud to eigen
   PCLEigen pcl;
@@ -306,6 +307,7 @@ Transform ICP::performIcp(
 {
   // Start with the initial guess
   Transform X_target_source;
+  size_t last_spheres_id = 0;
 
   for (size_t iter = 0; iter < params.max_iterations; ++iter) {
     Transform new_X_target_source;
@@ -321,8 +323,8 @@ Transform ICP::performIcp(
     }
 
     if (params.visualize) {
-      visual_tools->deleteMarker("source_points", 0);
-      visualizePCL(
+      visual_tools->deleteMarker("source_points", last_spheres_id);
+      last_spheres_id = visualizePCL(
         new_X_target_source * source_points,
         rviz_visual_tools::Colors::YELLOW, 0.005,
         "source_points");
@@ -354,7 +356,7 @@ Transform ICP::performIcp(
     "ICP did not converge after " + std::to_string(params.max_iterations) + " iterations");
 }
 
-void visualizePCL(
+size_t visualizePCL(
   const PCLEigen & pcl,
   const rviz_visual_tools::Colors & color,
   float scale,
@@ -376,6 +378,7 @@ void visualizePCL(
 
   visual_tools->publishSpheres(points, color, scale, ns);
   visual_tools->trigger();
+  return visual_tools->getSpheresId();
 }
 
 Vector ICP::getCentroid(const PCLEigen & pcl)
