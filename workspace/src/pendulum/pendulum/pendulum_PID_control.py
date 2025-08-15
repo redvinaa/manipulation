@@ -57,7 +57,7 @@ class Pendulum(Node):
         self.declare_parameter('gearbox_ratio', 100.0)
         self.declare_parameter('rotor_inertia', 3.46e-4)
         self.declare_parameter('frequency', 100.0)
-        self.declare_parameter('frame_id', 'map')
+        self.declare_parameter('frame_id', 'world')
         self.declare_parameter('P_gain', 1.0)
         self.declare_parameter('I_gain', 1.0)
         self.declare_parameter('D_gain', 1.0)
