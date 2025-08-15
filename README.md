@@ -4,6 +4,10 @@ This repo stores my code for going through the [MIT course](https://manipulation
 
 *Disclaimer*: because this is just practice code, there isn't excessive documentation, check the source code.
 
+<p align="center">
+  <img src="workspace/src/basic_pick_and_place_ur/differential_ik_optimization.gif" alt="Differential IK control demo" width="800">
+</p>
+
 ## Usage
 
 Everything is dockerized, run
