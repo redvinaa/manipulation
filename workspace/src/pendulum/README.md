@@ -8,6 +8,8 @@ It simulates the effect of reflected inertia from the motor through the gearbox 
    - `pendulum_torque_control`: You can control motor torque directly
    - `pendulum_PID_control`: You control desired pendulum angle through PID controller
 
+Based on excercise 2.1 of [MIT Robotic Manipulation - Let's get you a robot](https://manipulation.csail.mit.edu/robot.html#section7)
+
 ## Usage
 1. Build the package
 1. Run node
