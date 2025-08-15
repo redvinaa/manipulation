@@ -31,6 +31,8 @@ Then you can run any executable, for example:
 ros2 run pendulum pendulum_PID_control
 ```
 
+**Check each package's `README.md` for more details on how to run the code.**
+
 ### Notes
 
 To get a working UR stack in simulation, it's enough to clone [the UR_ROS2_GZ repo](git@github.com:UniversalRobots/Universal_Robots_ROS2_GZ_Simulation.git) and install the dependencies with
