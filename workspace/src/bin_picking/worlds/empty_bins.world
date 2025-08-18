@@ -1,0 +1,76 @@
+<?xml version='1.0' ?>
+<sdf version='1.7'>
+  <world name='default'>
+
+    <physics type="ignored">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+    </physics>
+
+    <plugin
+      filename="gz-sim-physics-system"
+      name="gz::sim::systems::Physics">
+    </plugin>
+    <plugin
+      filename="gz-sim-user-commands-system"
+      name="gz::sim::systems::UserCommands">
+    </plugin>
+    <plugin
+      filename="gz-sim-scene-broadcaster-system"
+      name="gz::sim::systems::SceneBroadcaster">
+    </plugin>
+    <plugin
+      filename="gz-sim-sensors-system"
+      name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+    <plugin
+      filename="gz-sim-imu-system"
+      name="gz::sim::systems::Imu">
+    </plugin>
+    <plugin
+      filename="gz-sim-contact-system"
+      name="gz::sim::systems::Contact">
+    </plugin>
+
+    <include>
+      <uri>model://ground_plane</uri>
+    </include>
+
+    <include>
+      <uri>model://sun</uri>
+    </include>
+
+    <include>
+      <pose>0.5 0 0 0 0 0</pose>
+      <uri>model://bin_tray</uri>
+    </include>
+
+    <include>
+      <pose>0 0.5 0 0 0 0</pose>
+      <uri>model://bin_tray</uri>
+      <name>bin_tray_2</name>
+    </include>
+
+    <!-- <include> -->
+    <!--   <pose>-0.5 0 0 0 0 0</pose> -->
+    <!--   <uri>model://ACE_Coffee_Mug_Kristen_16_oz_cup</uri> -->
+    <!-- </include> -->
+
+
+    <!-- <include> -->
+    <!--   <uri>model://002_master_chef_can</uri> -->
+    <!-- </include> -->
+
+    <!-- <include> -->
+    <!--   <pose>0.25 0 0 0 0 0</pose> -->
+    <!--   <uri>model://003_cracker_box</uri> -->
+    <!-- </include> -->
+
+    <!-- <include> -->
+    <!--   <pose>0.5 0 0 0 0 0</pose> -->
+    <!--   <uri>model://006_mustard_bottle</uri> -->
+    <!-- </include> -->
+
+  </world>
+</sdf>
