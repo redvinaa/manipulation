@@ -1,0 +1,55 @@
+<?xml version='1.0'?>
+<sdf version="1.4">
+  <model name="pear">
+    <static>false</static>
+    <link name="link">
+      <inertial>
+        <pose>-0.032542733786051076 0.011075535445138573 0.030040521498604082 2.04054080247033 -0.7423506892704661 2.744636464079527</pose>
+        <mass>0.000192218040717369</mass>
+        <inertia>
+          <ixx>1.307113540605602e-07</ixx>
+          <ixy>-4.31835747444182e-24</ixy>
+          <ixz>6.349930946090901e-24</ixz>
+          <iyy>1.280852023276796e-07</iyy>
+          <iyz>8.124516480323889e-24</iyz>
+          <izz>7.720902655923678e-08</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <!-- Use a downsampled mesh for collisions -->
+            <uri>model://016_pear/google_16k/016_pear.obj</uri>
+            </mesh>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000000000.0</kp>
+              <kd>1</kd>
+              <min_depth>0.0001</min_depth>
+              <max_vel>0.01</max_vel>
+            </ode>
+          </contact>
+          <bounce>
+            <restitution_coefficient>0.1</restitution_coefficient>
+            <threshold>1000.0</threshold>
+          </bounce>
+        </surface>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>model://016_pear/google_16k/016_pear.dae</uri>
+            </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>

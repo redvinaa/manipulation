@@ -1,0 +1,55 @@
+<?xml version='1.0'?>
+<sdf version="1.4">
+  <model name="wood_block">
+    <static>false</static>
+    <link name="link">
+      <inertial>
+        <pose>0.0233730518561954 -0.010273626224740965 0.10276919233489218 -3.136565007591221 0.006901927989382985 -1.9731263947914746</pose>
+        <mass>0.0015785408903207848</mass>
+        <inertia>
+          <ixx>6.5318300660206704e-06</ixx>
+          <ixy>1.2626988763098268e-21</ixy>
+          <ixz>6.187373078042093e-22</ixz>
+          <iyy>6.4967883219170695e-06</iyy>
+          <iyz>-1.1620783666181942e-21</iyz>
+          <izz>2.023521671878567e-06</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <!-- Use a downsampled mesh for collisions -->
+            <uri>model://036_wood_block/google_16k/036_wood_block.obj</uri>
+            </mesh>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000000000.0</kp>
+              <kd>1</kd>
+              <min_depth>0.0001</min_depth>
+              <max_vel>0.01</max_vel>
+            </ode>
+          </contact>
+          <bounce>
+            <restitution_coefficient>0.1</restitution_coefficient>
+            <threshold>1000.0</threshold>
+          </bounce>
+        </surface>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>model://036_wood_block/google_16k/036_wood_block.dae</uri>
+            </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>

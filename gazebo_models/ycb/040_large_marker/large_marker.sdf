@@ -1,0 +1,55 @@
+<?xml version='1.0'?>
+<sdf version="1.4">
+  <model name="large_marker">
+    <static>false</static>
+    <link name="link">
+      <inertial>
+        <pose>-0.035725124851894 -0.00788077074326952 0.009018296996191047 1.5699074828200996 -0.9271848404237287 -3.120076490318127</pose>
+        <mass>2.7399944924772163e-05</mass>
+        <inertia>
+          <ixx>3.098544090953974e-08</ixx>
+          <ixy>-6.990670232899168e-24</ixy>
+          <ixz>-4.381884113982346e-25</ixz>
+          <iyy>3.098119463302472e-08</iyy>
+          <iyz>1.6068861975935736e-25</iyz>
+          <izz>1.0631513526588344e-09</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <!-- Use a downsampled mesh for collisions -->
+            <uri>model://040_large_marker/google_16k/040_large_marker.obj</uri>
+            </mesh>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000000000.0</kp>
+              <kd>1</kd>
+              <min_depth>0.0001</min_depth>
+              <max_vel>0.01</max_vel>
+            </ode>
+          </contact>
+          <bounce>
+            <restitution_coefficient>0.1</restitution_coefficient>
+            <threshold>1000.0</threshold>
+          </bounce>
+        </surface>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>model://040_large_marker/google_16k/040_large_marker.dae</uri>
+            </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>

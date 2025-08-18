@@ -1,0 +1,55 @@
+<?xml version='1.0'?>
+<sdf version="1.4">
+  <model name="spoon">
+    <static>false</static>
+    <link name="link">
+      <inertial>
+        <pose>-0.01805591680130397 -0.01016056511934541 0.010048592434568836 -1.0265757905962998 -1.5155464675064887 0.6802958339721472</pose>
+        <mass>2.432101198831533e-05</mass>
+        <inertia>
+          <ixx>9.096196827439232e-08</ixx>
+          <ixy>1.1991361190806962e-24</ixy>
+          <ixz>2.402786663772447e-24</ixz>
+          <iyy>9.038583292816076e-08</iyy>
+          <iyz>1.4967548035297828e-23</iyz>
+          <izz>1.1819371187282668e-09</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <!-- Use a downsampled mesh for collisions -->
+            <uri>model://031_spoon/google_16k/031_spoon.obj</uri>
+            </mesh>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000000000.0</kp>
+              <kd>1</kd>
+              <min_depth>0.0001</min_depth>
+              <max_vel>0.01</max_vel>
+            </ode>
+          </contact>
+          <bounce>
+            <restitution_coefficient>0.1</restitution_coefficient>
+            <threshold>1000.0</threshold>
+          </bounce>
+        </surface>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>model://031_spoon/google_16k/031_spoon.dae</uri>
+            </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>

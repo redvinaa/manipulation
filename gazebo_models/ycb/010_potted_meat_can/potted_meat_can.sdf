@@ -1,0 +1,55 @@
+<?xml version='1.0'?>
+<sdf version="1.4">
+  <model name="potted_meat_can">
+    <static>false</static>
+    <link name="link">
+      <inertial>
+        <pose>-0.032840352216858736 -0.02635271439745596 0.03783085009135961 -1.577430392595329 -0.01075977288728082 1.6258710123374909</pose>
+        <mass>0.0003541315255998319</mass>
+        <inertia>
+          <ixx>4.287366513749586e-07</ixx>
+          <ixy>-3.232805398342692e-23</ixy>
+          <ixz>-5.2133534533270504e-24</ixz>
+          <iyy>3.228086963634996e-07</iyy>
+          <iyz>2.7377266910056168e-25</iyz>
+          <izz>2.492539316611724e-07</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <!-- Use a downsampled mesh for collisions -->
+            <uri>model://010_potted_meat_can/google_16k/010_potted_meat_can.obj</uri>
+            </mesh>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000000000.0</kp>
+              <kd>1</kd>
+              <min_depth>0.0001</min_depth>
+              <max_vel>0.01</max_vel>
+            </ode>
+          </contact>
+          <bounce>
+            <restitution_coefficient>0.1</restitution_coefficient>
+            <threshold>1000.0</threshold>
+          </bounce>
+        </surface>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>model://010_potted_meat_can/google_16k/010_potted_meat_can.dae</uri>
+            </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>

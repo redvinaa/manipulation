@@ -1,0 +1,55 @@
+<?xml version='1.0'?>
+<sdf version="1.4">
+  <model name="tennis_ball">
+    <static>false</static>
+    <link name="link">
+      <inertial>
+        <pose>0.008233239762589124 -0.04419242630466529 0.03288662063700162 -2.9810379115872068 -1.0170287585971745 -2.748123242054123</pose>
+        <mass>0.00015596837466282982</mass>
+        <inertia>
+          <ixx>6.98013142945436e-08</ixx>
+          <ixy>6.5054433909225095e-24</ixy>
+          <ixz>3.33428225752008e-24</ixz>
+          <iyy>6.951004823297152e-08</iyy>
+          <iyz>-2.046586203962286e-24</iyz>
+          <izz>6.942650877097575e-08</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <!-- Use a downsampled mesh for collisions -->
+            <uri>model://056_tennis_ball/google_16k/056_tennis_ball.obj</uri>
+            </mesh>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000000000.0</kp>
+              <kd>1</kd>
+              <min_depth>0.0001</min_depth>
+              <max_vel>0.01</max_vel>
+            </ode>
+          </contact>
+          <bounce>
+            <restitution_coefficient>0.1</restitution_coefficient>
+            <threshold>1000.0</threshold>
+          </bounce>
+        </surface>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>model://056_tennis_ball/google_16k/056_tennis_ball.dae</uri>
+            </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>

@@ -1,0 +1,55 @@
+<?xml version='1.0'?>
+<sdf version="1.4">
+  <model name="sugar_box">
+    <static>false</static>
+    <link name="link">
+      <inertial>
+        <pose>-0.007698415494577894 -0.017078163162294522 0.08602381422432336 -3.126326294796978 0.040126571648077786 3.103110966594215</pose>
+        <mass>0.000637932730363638</mass>
+        <inertia>
+          <ixx>2.0142733073790597e-06</ixx>
+          <ixy>1.142039509559124e-23</ixy>
+          <ixz>2.7724751580454045e-23</ixz>
+          <iyy>1.6869117109553208e-06</iyy>
+          <iyz>6.810063283372961e-22</iyz>
+          <izz>5.036834967526001e-07</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <!-- Use a downsampled mesh for collisions -->
+            <uri>model://004_sugar_box/google_16k/004_sugar_box.obj</uri>
+            </mesh>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000000000.0</kp>
+              <kd>1</kd>
+              <min_depth>0.0001</min_depth>
+              <max_vel>0.01</max_vel>
+            </ode>
+          </contact>
+          <bounce>
+            <restitution_coefficient>0.1</restitution_coefficient>
+            <threshold>1000.0</threshold>
+          </bounce>
+        </surface>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>model://004_sugar_box/google_16k/004_sugar_box.dae</uri>
+            </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>

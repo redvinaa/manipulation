@@ -1,0 +1,55 @@
+<?xml version='1.0'?>
+<sdf version="1.4">
+  <model name="pitcher_base">
+    <static>false</static>
+    <link name="link">
+      <inertial>
+        <pose>-0.01341344651174405 0.03347736239251225 0.12263624751276254 3.127817997148494 -0.0045202165370384325 -0.8335960775342538</pose>
+        <mass>0.0025490222330232276</mass>
+        <inertia>
+          <ixx>1.3427327160192534e-05</ixx>
+          <ixy>2.9399733457334795e-21</ixy>
+          <ixz>-1.8067737494320044e-21</ixz>
+          <iyy>1.3268310851490296e-05</iyy>
+          <iyz>-8.908137983682465e-22</iyz>
+          <izz>4.702625186734813e-06</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <!-- Use a downsampled mesh for collisions -->
+            <uri>model://019_pitcher_base/google_16k/019_pitcher_base.obj</uri>
+            </mesh>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000000000.0</kp>
+              <kd>1</kd>
+              <min_depth>0.0001</min_depth>
+              <max_vel>0.01</max_vel>
+            </ode>
+          </contact>
+          <bounce>
+            <restitution_coefficient>0.1</restitution_coefficient>
+            <threshold>1000.0</threshold>
+          </bounce>
+        </surface>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>model://019_pitcher_base/google_16k/019_pitcher_base.dae</uri>
+            </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>

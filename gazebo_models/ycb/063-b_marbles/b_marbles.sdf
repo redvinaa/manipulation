@@ -1,0 +1,55 @@
+<?xml version='1.0'?>
+<sdf version="1.4">
+  <model name="b_marbles">
+    <static>false</static>
+    <link name="link">
+      <inertial>
+        <pose>-0.009111904265061217 -0.04511233142812526 0.016845139796964972 2.262088034391094 -1.3669004722573834 -1.827334505979422</pose>
+        <mass>2.189252485695283e-05</mass>
+        <inertia>
+          <ixx>2.665681709302112e-09</ixx>
+          <ixy>-4.7509549517020836e-26</ixy>
+          <ixz>-1.349583824742007e-25</ixz>
+          <iyy>2.633036799706382e-09</iyy>
+          <iyz>5.824526965988248e-25</iyz>
+          <izz>2.61540363210651e-09</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <!-- Use a downsampled mesh for collisions -->
+            <uri>model://063-b_marbles/google_16k/063-b_marbles.obj</uri>
+            </mesh>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000000000.0</kp>
+              <kd>1</kd>
+              <min_depth>0.0001</min_depth>
+              <max_vel>0.01</max_vel>
+            </ode>
+          </contact>
+          <bounce>
+            <restitution_coefficient>0.1</restitution_coefficient>
+            <threshold>1000.0</threshold>
+          </bounce>
+        </surface>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>model://063-b_marbles/google_16k/063-b_marbles.dae</uri>
+            </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>

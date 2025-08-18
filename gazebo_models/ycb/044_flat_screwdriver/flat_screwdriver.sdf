@@ -1,0 +1,55 @@
+<?xml version='1.0'?>
+<sdf version="1.4">
+  <model name="flat_screwdriver">
+    <static>false</static>
+    <link name="link">
+      <inertial>
+        <pose>0.023228351441964466 -0.02270556071884342 0.016179821688211804 -1.6854651662970055 -1.2285699396956902 0.9119711789660342</pose>
+        <mass>7.621626182656017e-05</mass>
+        <inertia>
+          <ixx>1.0455872762990073e-07</ixx>
+          <ixy>1.0670086779981185e-23</ixy>
+          <ixz>1.0373355042567683e-23</ixz>
+          <iyy>1.0453551341148406e-07</iyy>
+          <iyz>2.3207624197120762e-23</iyz>
+          <izz>8.509661183314494e-09</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <!-- Use a downsampled mesh for collisions -->
+            <uri>model://044_flat_screwdriver/google_16k/044_flat_screwdriver.obj</uri>
+            </mesh>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000000000.0</kp>
+              <kd>1</kd>
+              <min_depth>0.0001</min_depth>
+              <max_vel>0.01</max_vel>
+            </ode>
+          </contact>
+          <bounce>
+            <restitution_coefficient>0.1</restitution_coefficient>
+            <threshold>1000.0</threshold>
+          </bounce>
+        </surface>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>model://044_flat_screwdriver/google_16k/044_flat_screwdriver.dae</uri>
+            </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>

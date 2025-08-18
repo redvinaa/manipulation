@@ -1,0 +1,55 @@
+<?xml version='1.0'?>
+<sdf version="1.4">
+  <model name="rubiks_cube">
+    <static>false</static>
+    <link name="link">
+      <inertial>
+        <pose>-0.01621904987834239 -0.0004852905644285978 0.028589928178413306 2.364833332193811 -0.16473372100789463 -2.6692854948354134</pose>
+        <mass>0.00018287731685751214</mass>
+        <inertia>
+          <ixx>9.852040380736427e-08</ixx>
+          <ixy>2.8814286138676175e-24</ixy>
+          <ixz>-4.881258528024058e-24</ixz>
+          <iyy>9.83357739187614e-08</iyy>
+          <iyz>1.7403347085320402e-23</iyz>
+          <izz>9.818197457535541e-08</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <!-- Use a downsampled mesh for collisions -->
+            <uri>model://077_rubiks_cube/google_16k/077_rubiks_cube.obj</uri>
+            </mesh>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000000000.0</kp>
+              <kd>1</kd>
+              <min_depth>0.0001</min_depth>
+              <max_vel>0.01</max_vel>
+            </ode>
+          </contact>
+          <bounce>
+            <restitution_coefficient>0.1</restitution_coefficient>
+            <threshold>1000.0</threshold>
+          </bounce>
+        </surface>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>model://077_rubiks_cube/google_16k/077_rubiks_cube.dae</uri>
+            </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>

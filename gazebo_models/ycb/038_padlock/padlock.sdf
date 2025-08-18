@@ -1,0 +1,55 @@
+<?xml version='1.0'?>
+<sdf version="1.4">
+  <model name="padlock">
+    <static>false</static>
+    <link name="link">
+      <inertial>
+        <pose>-0.01707606691752894 0.009517389002211323 0.013626341524550547 2.927745012705907 -1.4645624142657327 -3.127383472304371</pose>
+        <mass>4.57020034268325e-05</mass>
+        <inertia>
+          <ixx>1.548488478544847e-08</ixx>
+          <ixy>3.686949259276433e-24</ixy>
+          <ixz>7.334040623284196e-26</ixz>
+          <iyy>1.1426254423194736e-08</iyy>
+          <iyz>4.745004221988278e-25</iyz>
+          <izz>8.409682265277147e-09</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <!-- Use a downsampled mesh for collisions -->
+            <uri>model://038_padlock/google_16k/038_padlock.obj</uri>
+            </mesh>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000000000.0</kp>
+              <kd>1</kd>
+              <min_depth>0.0001</min_depth>
+              <max_vel>0.01</max_vel>
+            </ode>
+          </contact>
+          <bounce>
+            <restitution_coefficient>0.1</restitution_coefficient>
+            <threshold>1000.0</threshold>
+          </bounce>
+        </surface>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>model://038_padlock/google_16k/038_padlock.dae</uri>
+            </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>

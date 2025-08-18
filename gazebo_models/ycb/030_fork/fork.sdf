@@ -1,0 +1,55 @@
+<?xml version='1.0'?>
+<sdf version="1.4">
+  <model name="fork">
+    <static>false</static>
+    <link name="link">
+      <inertial>
+        <pose>0.008499561933269988 -0.021533112701872234 0.00670927433639299 1.6796656782872945 1.445525497397485 -1.463809690115677</pose>
+        <mass>1.9601593273736498e-05</mass>
+        <inertia>
+          <ixx>4.722043931283828e-08</ixx>
+          <ixy>-6.161489561122109e-24</ixy>
+          <ixz>-8.353904654905929e-26</ixz>
+          <iyy>4.6924457020538644e-08</iyy>
+          <iyz>1.6369737175229306e-25</iyz>
+          <izz>6.556117942788126e-10</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <!-- Use a downsampled mesh for collisions -->
+            <uri>model://030_fork/google_16k/030_fork.obj</uri>
+            </mesh>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000000000.0</kp>
+              <kd>1</kd>
+              <min_depth>0.0001</min_depth>
+              <max_vel>0.01</max_vel>
+            </ode>
+          </contact>
+          <bounce>
+            <restitution_coefficient>0.1</restitution_coefficient>
+            <threshold>1000.0</threshold>
+          </bounce>
+        </surface>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>model://030_fork/google_16k/030_fork.dae</uri>
+            </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>

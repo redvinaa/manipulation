@@ -1,0 +1,55 @@
+<?xml version='1.0'?>
+<sdf version="1.4">
+  <model name="adjustable_wrench">
+    <static>false</static>
+    <link name="link">
+      <inertial>
+        <pose>0.01450146241685899 -0.049664842094331994 0.004250780997626008 -2.1210410034214613 -1.5340779965528406 1.05767233743121</pose>
+        <mass>1.9821730387476e-05</mass>
+        <inertia>
+          <ixx>4.68812164277712e-08</ixx>
+          <ixy>-9.127291778619243e-25</ixy>
+          <ixz>-1.3817253032961068e-24</ixz>
+          <iyy>4.282249507787252e-08</iyy>
+          <iyz>-8.533346851393124e-24</iyz>
+          <izz>4.257478965991322e-09</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <!-- Use a downsampled mesh for collisions -->
+            <uri>model://042_adjustable_wrench/google_16k/042_adjustable_wrench.obj</uri>
+            </mesh>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000000000.0</kp>
+              <kd>1</kd>
+              <min_depth>0.0001</min_depth>
+              <max_vel>0.01</max_vel>
+            </ode>
+          </contact>
+          <bounce>
+            <restitution_coefficient>0.1</restitution_coefficient>
+            <threshold>1000.0</threshold>
+          </bounce>
+        </surface>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>model://042_adjustable_wrench/google_16k/042_adjustable_wrench.dae</uri>
+            </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>

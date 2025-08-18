@@ -1,0 +1,55 @@
+<?xml version='1.0'?>
+<sdf version="1.4">
+  <model name="e_toy_airplane">
+    <static>false</static>
+    <link name="link">
+      <inertial>
+        <pose>-0.015461052619458248 -0.007752454040306523 0.021859940254387183 0.003311842497510533 0.01040355423104165 0.177245034733478</pose>
+        <mass>1.84087117481425e-05</mass>
+        <inertia>
+          <ixx>5.511554416878709e-09</ixx>
+          <ixy>-2.1304240679424532e-26</ixy>
+          <ixz>5.663710500989139e-25</ixz>
+          <iyy>5.468879870174321e-09</iyy>
+          <iyz>-3.0676272233362555e-25</iyz>
+          <izz>1.6889584451051366e-09</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <!-- Use a downsampled mesh for collisions -->
+            <uri>model://072-e_toy_airplane/google_16k/072-e_toy_airplane.obj</uri>
+            </mesh>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000000000.0</kp>
+              <kd>1</kd>
+              <min_depth>0.0001</min_depth>
+              <max_vel>0.01</max_vel>
+            </ode>
+          </contact>
+          <bounce>
+            <restitution_coefficient>0.1</restitution_coefficient>
+            <threshold>1000.0</threshold>
+          </bounce>
+        </surface>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>model://072-e_toy_airplane/google_16k/072-e_toy_airplane.dae</uri>
+            </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>

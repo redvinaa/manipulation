@@ -1,0 +1,55 @@
+<?xml version='1.0'?>
+<sdf version="1.4">
+  <model name="spatula">
+    <static>false</static>
+    <link name="link">
+      <inertial>
+        <pose>-0.04658104382034089 -0.07860574843636466 0.013189187861051136 -2.331561210495374 -1.5669207168488435 2.066380068208656</pose>
+        <mass>6.713356277814285e-05</mass>
+        <inertia>
+          <ixx>6.47949701547489e-07</ixx>
+          <ixy>-1.0427478650063788e-24</ixy>
+          <ixz>-3.292877454104162e-25</ixz>
+          <iyy>6.389283657144585e-07</iyy>
+          <iyz>5.903967889437602e-23</iyz>
+          <izz>1.5038319318788967e-08</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <!-- Use a downsampled mesh for collisions -->
+            <uri>model://033_spatula/google_16k/033_spatula.obj</uri>
+            </mesh>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000000000.0</kp>
+              <kd>1</kd>
+              <min_depth>0.0001</min_depth>
+              <max_vel>0.01</max_vel>
+            </ode>
+          </contact>
+          <bounce>
+            <restitution_coefficient>0.1</restitution_coefficient>
+            <threshold>1000.0</threshold>
+          </bounce>
+        </surface>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>model://033_spatula/google_16k/033_spatula.dae</uri>
+            </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>

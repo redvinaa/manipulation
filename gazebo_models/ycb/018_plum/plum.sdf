@@ -1,0 +1,55 @@
+<?xml version='1.0'?>
+<sdf version="1.4">
+  <model name="plum">
+    <static>false</static>
+    <link name="link">
+      <inertial>
+        <pose>-0.007742611303817824 0.01949223166858234 0.023720337525360756 -1.6903349614702285 -0.8413693132397938 1.824315135233712</pose>
+        <mass>8.61776383862375e-05</mass>
+        <inertia>
+          <ixx>2.7178060074813222e-08</ixx>
+          <ixy>-2.8308143756194184e-24</ixy>
+          <ixz>2.520433697407622e-24</ixz>
+          <iyy>2.621085558369001e-08</iyy>
+          <iyz>1.945384566713743e-24</iyz>
+          <izz>2.5065263854215248e-08</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <!-- Use a downsampled mesh for collisions -->
+            <uri>model://018_plum/google_16k/018_plum.obj</uri>
+            </mesh>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000000000.0</kp>
+              <kd>1</kd>
+              <min_depth>0.0001</min_depth>
+              <max_vel>0.01</max_vel>
+            </ode>
+          </contact>
+          <bounce>
+            <restitution_coefficient>0.1</restitution_coefficient>
+            <threshold>1000.0</threshold>
+          </bounce>
+        </surface>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>model://018_plum/google_16k/018_plum.dae</uri>
+            </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>

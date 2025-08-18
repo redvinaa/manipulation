@@ -1,0 +1,55 @@
+<?xml version='1.0'?>
+<sdf version="1.4">
+  <model name="plate">
+    <static>false</static>
+    <link name="link">
+      <inertial>
+        <pose>-0.010005972478719947 0.0012469395633811198 0.008849692580074854 2.6339554528331033 -1.5614170415643078 -2.157546143298991</pose>
+        <mass>5.7831861697350493e-05</mass>
+        <inertia>
+          <ixx>5.195351956272858e-07</ixx>
+          <ixy>-1.3088547942039716e-22</ixy>
+          <ixz>1.6318619184924375e-23</ixz>
+          <iyy>2.6593460524929575e-07</iyy>
+          <iyz>-2.0263823954967226e-23</iyz>
+          <izz>2.6384620259449506e-07</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <!-- Use a downsampled mesh for collisions -->
+            <uri>model://029_plate/google_16k/029_plate.obj</uri>
+            </mesh>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000000000.0</kp>
+              <kd>1</kd>
+              <min_depth>0.0001</min_depth>
+              <max_vel>0.01</max_vel>
+            </ode>
+          </contact>
+          <bounce>
+            <restitution_coefficient>0.1</restitution_coefficient>
+            <threshold>1000.0</threshold>
+          </bounce>
+        </surface>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>model://029_plate/google_16k/029_plate.dae</uri>
+            </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>

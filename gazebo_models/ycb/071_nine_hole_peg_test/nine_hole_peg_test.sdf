@@ -1,0 +1,55 @@
+<?xml version='1.0'?>
+<sdf version="1.4">
+  <model name="nine_hole_peg_test">
+    <static>false</static>
+    <link name="link">
+      <inertial>
+        <pose>-0.000188539225942058 0.024373721273276625 0.019952866039031774 -0.5731920548330046 -1.5682548118819548 -1.2142461506381406</pose>
+        <mass>0.0006265859969762233</mass>
+        <inertia>
+          <ixx>1.6556355079461083e-06</ixx>
+          <ixy>7.547979933876385e-24</ixy>
+          <ixz>1.7608693784143568e-24</ixz>
+          <iyy>9.576057723576261e-07</iyy>
+          <iyz>-1.239945404749943e-23</iyz>
+          <izz>8.652779252863081e-07</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <!-- Use a downsampled mesh for collisions -->
+            <uri>model://071_nine_hole_peg_test/google_16k/071_nine_hole_peg_test.obj</uri>
+            </mesh>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000000000.0</kp>
+              <kd>1</kd>
+              <min_depth>0.0001</min_depth>
+              <max_vel>0.01</max_vel>
+            </ode>
+          </contact>
+          <bounce>
+            <restitution_coefficient>0.1</restitution_coefficient>
+            <threshold>1000.0</threshold>
+          </bounce>
+        </surface>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>model://071_nine_hole_peg_test/google_16k/071_nine_hole_peg_test.dae</uri>
+            </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>

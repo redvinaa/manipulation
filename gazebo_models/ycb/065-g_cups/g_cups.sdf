@@ -1,0 +1,55 @@
+<?xml version='1.0'?>
+<sdf version="1.4">
+  <model name="g_cups">
+    <static>false</static>
+    <link name="link">
+      <inertial>
+        <pose>0.012934602057724176 0.028094809623552288 0.03487435287003049 -2.6148162660284107 -1.2688604946737516 2.8469785263354184</pose>
+        <mass>4.526128588154451e-05</mass>
+        <inertia>
+          <ixx>5.650425124689807e-08</ixx>
+          <ixy>7.46347581003062e-24</ixy>
+          <ixz>-1.2010818884213424e-23</ixz>
+          <iyy>5.3162470017881243e-08</iyy>
+          <iyz>-9.295693856138225e-24</iyz>
+          <izz>5.2382244079594347e-08</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <!-- Use a downsampled mesh for collisions -->
+            <uri>model://065-g_cups/google_16k/065-g_cups.obj</uri>
+            </mesh>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000000000.0</kp>
+              <kd>1</kd>
+              <min_depth>0.0001</min_depth>
+              <max_vel>0.01</max_vel>
+            </ode>
+          </contact>
+          <bounce>
+            <restitution_coefficient>0.1</restitution_coefficient>
+            <threshold>1000.0</threshold>
+          </bounce>
+        </surface>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>model://065-g_cups/google_16k/065-g_cups.dae</uri>
+            </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>

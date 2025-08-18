@@ -1,0 +1,55 @@
+<?xml version='1.0'?>
+<sdf version="1.4">
+  <model name="scissors">
+    <static>false</static>
+    <link name="link">
+      <inertial>
+        <pose>0.014591521718079741 0.0031621364077388443 0.007400674371156582 1.1124705759062012 -1.5590402390897191 -2.9935291444767884</pose>
+        <mass>4.680136717925133e-05</mass>
+        <inertia>
+          <ixx>8.69433186093704e-08</ixx>
+          <ixy>9.509673821330551e-25</ixy>
+          <ixz>-4.767925485666365e-24</ixz>
+          <iyy>7.10209625183146e-08</iyy>
+          <iyz>-2.7542475664851348e-24</iyz>
+          <izz>1.693256625130799e-08</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <!-- Use a downsampled mesh for collisions -->
+            <uri>model://037_scissors/google_16k/037_scissors.obj</uri>
+            </mesh>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000000000.0</kp>
+              <kd>1</kd>
+              <min_depth>0.0001</min_depth>
+              <max_vel>0.01</max_vel>
+            </ode>
+          </contact>
+          <bounce>
+            <restitution_coefficient>0.1</restitution_coefficient>
+            <threshold>1000.0</threshold>
+          </bounce>
+        </surface>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>model://037_scissors/google_16k/037_scissors.dae</uri>
+            </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>

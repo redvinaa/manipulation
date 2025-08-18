@@ -1,0 +1,55 @@
+<?xml version='1.0'?>
+<sdf version="1.4">
+  <model name="foam_brick">
+    <static>false</static>
+    <link name="link">
+      <inertial>
+        <pose>-0.01862531574247814 0.0169548779068304 0.024644150528460397 1.2071431928515248 1.5217568314045988 -0.37887124819589607</pose>
+        <mass>0.00018492656256430834</mass>
+        <inertia>
+          <ixx>1.2843873503583375e-07</ixx>
+          <ixy>2.0068413468433154e-24</ixy>
+          <ixz>2.447330711150594e-23</ixz>
+          <iyy>1.2522943492836722e-07</iyy>
+          <iyz>6.67088403067879e-26</iyz>
+          <izz>7.768642722539469e-08</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <!-- Use a downsampled mesh for collisions -->
+            <uri>model://061_foam_brick/google_16k/061_foam_brick.obj</uri>
+            </mesh>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000000000.0</kp>
+              <kd>1</kd>
+              <min_depth>0.0001</min_depth>
+              <max_vel>0.01</max_vel>
+            </ode>
+          </contact>
+          <bounce>
+            <restitution_coefficient>0.1</restitution_coefficient>
+            <threshold>1000.0</threshold>
+          </bounce>
+        </surface>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>model://061_foam_brick/google_16k/061_foam_brick.dae</uri>
+            </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>

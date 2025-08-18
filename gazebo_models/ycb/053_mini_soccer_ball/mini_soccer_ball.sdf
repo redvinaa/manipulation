@@ -1,0 +1,55 @@
+<?xml version='1.0'?>
+<sdf version="1.4">
+  <model name="mini_soccer_ball">
+    <static>false</static>
+    <link name="link">
+      <inertial>
+        <pose>-0.0059125914007175946 0.01153056180076441 0.06131555334762106 2.9532979512498816 0.7287431133262665 -2.1174877715257936</pose>
+        <mass>0.0010465229343801774</mass>
+        <inertia>
+          <ixx>1.7092065404621089e-06</ixx>
+          <ixy>2.0401773278469613e-22</ixy>
+          <ixz>4.989452573983434e-22</ixz>
+          <iyy>1.654096012590147e-06</iyy>
+          <iyz>-2.5764172406950504e-22</iyz>
+          <izz>1.6272467028315037e-06</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <!-- Use a downsampled mesh for collisions -->
+            <uri>model://053_mini_soccer_ball/google_16k/053_mini_soccer_ball.obj</uri>
+            </mesh>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000000000.0</kp>
+              <kd>1</kd>
+              <min_depth>0.0001</min_depth>
+              <max_vel>0.01</max_vel>
+            </ode>
+          </contact>
+          <bounce>
+            <restitution_coefficient>0.1</restitution_coefficient>
+            <threshold>1000.0</threshold>
+          </bounce>
+        </surface>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>model://053_mini_soccer_ball/google_16k/053_mini_soccer_ball.dae</uri>
+            </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>

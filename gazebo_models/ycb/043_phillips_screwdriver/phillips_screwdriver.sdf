@@ -1,0 +1,55 @@
+<?xml version='1.0'?>
+<sdf version="1.4">
+  <model name="phillips_screwdriver">
+    <static>false</static>
+    <link name="link">
+      <inertial>
+        <pose>0.0026626279153952586 0.02222386939344705 0.01637227553798352 1.6522155005369874 -1.0056759124337349 -1.1744857422472434</pose>
+        <mass>7.700548566461368e-05</mass>
+        <inertia>
+          <ixx>1.0868078692455586e-07</ixx>
+          <ixy>1.0414004878756854e-23</ixy>
+          <ixz>7.411900555134956e-25</ixz>
+          <iyy>1.0863412549561536e-07</iyy>
+          <iyz>-8.13563924364939e-24</iyz>
+          <izz>8.538219861143367e-09</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <!-- Use a downsampled mesh for collisions -->
+            <uri>model://043_phillips_screwdriver/google_16k/043_phillips_screwdriver.obj</uri>
+            </mesh>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000000000.0</kp>
+              <kd>1</kd>
+              <min_depth>0.0001</min_depth>
+              <max_vel>0.01</max_vel>
+            </ode>
+          </contact>
+          <bounce>
+            <restitution_coefficient>0.1</restitution_coefficient>
+            <threshold>1000.0</threshold>
+          </bounce>
+        </surface>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>model://043_phillips_screwdriver/google_16k/043_phillips_screwdriver.dae</uri>
+            </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>

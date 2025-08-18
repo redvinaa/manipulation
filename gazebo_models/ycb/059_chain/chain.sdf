@@ -1,0 +1,55 @@
+<?xml version='1.0'?>
+<sdf version="1.4">
+  <model name="chain">
+    <static>false</static>
+    <link name="link">
+      <inertial>
+        <pose>-0.034274940120650695 0.018175325943306266 0.00901024761193737 1.0572172745720854 -1.5612055829470524 -3.0516691459643424</pose>
+        <mass>0.00011189363696047932</mass>
+        <inertia>
+          <ixx>1.3307905578269508e-06</ixx>
+          <ixy>3.425425713206781e-23</ixy>
+          <ixz>-4.053575546117561e-24</ixz>
+          <iyy>7.338900067550518e-07</iyy>
+          <iyz>9.384417255162327e-24</iyz>
+          <izz>6.025740314983348e-07</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <!-- Use a downsampled mesh for collisions -->
+            <uri>model://059_chain/google_16k/059_chain.obj</uri>
+            </mesh>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000000000.0</kp>
+              <kd>1</kd>
+              <min_depth>0.0001</min_depth>
+              <max_vel>0.01</max_vel>
+            </ode>
+          </contact>
+          <bounce>
+            <restitution_coefficient>0.1</restitution_coefficient>
+            <threshold>1000.0</threshold>
+          </bounce>
+        </surface>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>model://059_chain/google_16k/059_chain.dae</uri>
+            </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>

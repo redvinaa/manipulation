@@ -1,0 +1,55 @@
+<?xml version='1.0'?>
+<sdf version="1.4">
+  <model name="mug">
+    <static>false</static>
+    <link name="link">
+      <inertial>
+        <pose>-0.018858606464151616 0.016572962311650615 0.026898852026976835 2.218343732653022 -1.4689543656478918 -2.2505049476744783</pose>
+        <mass>0.00013812094844812262</mass>
+        <inertia>
+          <ixx>1.7285969013124888e-07</ixx>
+          <ixy>-4.19530990677684e-23</ixy>
+          <ixz>-1.818904577424472e-24</ixz>
+          <iyy>1.3507073823129265e-07</iyy>
+          <iyz>5.1871918048611555e-24</iyz>
+          <izz>1.1879517405979687e-07</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <!-- Use a downsampled mesh for collisions -->
+            <uri>model://025_mug/google_16k/025_mug.obj</uri>
+            </mesh>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000000000.0</kp>
+              <kd>1</kd>
+              <min_depth>0.0001</min_depth>
+              <max_vel>0.01</max_vel>
+            </ode>
+          </contact>
+          <bounce>
+            <restitution_coefficient>0.1</restitution_coefficient>
+            <threshold>1000.0</threshold>
+          </bounce>
+        </surface>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>model://025_mug/google_16k/025_mug.dae</uri>
+            </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>

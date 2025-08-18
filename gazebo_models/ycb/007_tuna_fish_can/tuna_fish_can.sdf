@@ -1,0 +1,55 @@
+<?xml version='1.0'?>
+<sdf version="1.4">
+  <model name="tuna_fish_can">
+    <static>false</static>
+    <link name="link">
+      <inertial>
+        <pose>-0.02599632537762765 -0.02214035959406331 0.012989508195911936 -0.4484541480880963 -1.5705852276942327 0.2128510810244751</pose>
+        <mass>0.00015261883396786033</mass>
+        <inertia>
+          <ixx>1.3941298546481137e-07</ixx>
+          <ixy>-8.879285390612234e-24</ixy>
+          <ixz>-3.022855787127906e-24</ixz>
+          <iyy>7.961242909265211e-08</iyy>
+          <iyz>-7.170875414502837e-24</iyz>
+          <izz>7.951765546408439e-08</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <!-- Use a downsampled mesh for collisions -->
+            <uri>model://007_tuna_fish_can/google_16k/007_tuna_fish_can.obj</uri>
+            </mesh>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000000000.0</kp>
+              <kd>1</kd>
+              <min_depth>0.0001</min_depth>
+              <max_vel>0.01</max_vel>
+            </ode>
+          </contact>
+          <bounce>
+            <restitution_coefficient>0.1</restitution_coefficient>
+            <threshold>1000.0</threshold>
+          </bounce>
+        </surface>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>model://007_tuna_fish_can/google_16k/007_tuna_fish_can.dae</uri>
+            </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>

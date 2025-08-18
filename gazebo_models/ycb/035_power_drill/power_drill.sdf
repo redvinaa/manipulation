@@ -1,0 +1,55 @@
+<?xml version='1.0'?>
+<sdf version="1.4">
+  <model name="power_drill">
+    <static>false</static>
+    <link name="link">
+      <inertial>
+        <pose>-0.0307146912553375 0.02435084573028549 0.023567633989684204 -2.0861491179896197 -1.5309771458518984 0.6822464871470086</pose>
+        <mass>0.0005808968085666662</mass>
+        <inertia>
+          <ixx>3.1058012590273503e-06</ixx>
+          <ixy>-4.3027095484207374e-23</ixy>
+          <ixz>-3.034672493365148e-22</ixz>
+          <iyy>2.3564289011284853e-06</iyy>
+          <iyz>-7.045478291702521e-23</iyz>
+          <izz>9.038816388046972e-07</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <!-- Use a downsampled mesh for collisions -->
+            <uri>model://035_power_drill/google_16k/035_power_drill.obj</uri>
+            </mesh>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000000000.0</kp>
+              <kd>1</kd>
+              <min_depth>0.0001</min_depth>
+              <max_vel>0.01</max_vel>
+            </ode>
+          </contact>
+          <bounce>
+            <restitution_coefficient>0.1</restitution_coefficient>
+            <threshold>1000.0</threshold>
+          </bounce>
+        </surface>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>model://035_power_drill/google_16k/035_power_drill.dae</uri>
+            </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>

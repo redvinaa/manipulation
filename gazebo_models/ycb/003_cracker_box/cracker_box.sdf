@@ -1,0 +1,55 @@
+<?xml version='1.0'?>
+<sdf version="1.4">
+  <model name="cracker_box">
+    <static>false</static>
+    <link name="link">
+      <inertial>
+        <pose>-0.01485355781018036 -0.01420505447388014 0.10220486833098277 3.1335923663863205 0.010946297886106997 3.140976285001705</pose>
+        <mass>0.0021732875685518717</mass>
+        <inertia>
+          <ixx>1.2667764335249053e-05</ixx>
+          <ixy>1.5808474302731088e-23</ixy>
+          <ixz>-3.20236025778695e-23</ixz>
+          <iyy>8.895223860935144e-06</iyy>
+          <iyz>7.255703499880346e-22</iyz>
+          <izz>5.284067250610004e-06</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <!-- Use a downsampled mesh for collisions -->
+            <uri>model://003_cracker_box/google_16k/003_cracker_box.obj</uri>
+            </mesh>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000000000.0</kp>
+              <kd>1</kd>
+              <min_depth>0.0001</min_depth>
+              <max_vel>0.01</max_vel>
+            </ode>
+          </contact>
+          <bounce>
+            <restitution_coefficient>0.1</restitution_coefficient>
+            <threshold>1000.0</threshold>
+          </bounce>
+        </surface>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <mesh>
+              <uri>model://003_cracker_box/google_16k/003_cracker_box.dae</uri>
+            </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>

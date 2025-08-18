@@ -1,0 +1,55 @@
+<?xml version='1.0'?>
+<sdf version="1.4">
+  <model name="medium_clamp">
+    <static>false</static>
+    <link name="link">
+      <inertial>
+        <pose>0.010827483056379221 -0.014903599956658636 0.012617934887942762 -1.8011855354168396 -1.557246698261016 1.9401151712398863</pose>
+        <mass>2.2388684701155667e-05</mass>
+        <inertia>
+          <ixx>1.3188020578349315e-08</ixx>
+          <ixy>-1.6243903842187778e-25</ixy>
+          <ixz>1.0934878097180678e-27</ixz>
+          <iyy>8.670795410871474e-09</iyy>
+          <iyz>4.394010968970647e-25</iyz>
+          <izz>5.803057357417044e-09</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <!-- Use a downsampled mesh for collisions -->
+            <uri>model://050_medium_clamp/google_16k/050_medium_clamp.obj</uri>
+            </mesh>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000000000.0</kp>
+              <kd>1</kd>
+              <min_depth>0.0001</min_depth>
+              <max_vel>0.01</max_vel>
+            </ode>
+          </contact>
+          <bounce>
+            <restitution_coefficient>0.1</restitution_coefficient>
+            <threshold>1000.0</threshold>
+          </bounce>
+        </surface>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>model://050_medium_clamp/google_16k/050_medium_clamp.dae</uri>
+            </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>

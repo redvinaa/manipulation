@@ -1,0 +1,55 @@
+<?xml version='1.0'?>
+<sdf version="1.4">
+  <model name="softball">
+    <static>false</static>
+    <link name="link">
+      <inertial>
+        <pose>-0.019649794100610775 0.010882535862384668 0.04681713398392472 0.6197435598668299 1.4692508307593815 -0.8068714957007482</pose>
+        <mass>0.0004626568501712982</mass>
+        <inertia>
+          <ixx>4.2804008442274933e-07</ixx>
+          <ixy>6.950362824423692e-24</ixy>
+          <ixz>3.3939687913861413e-23</ixz>
+          <iyy>4.265061770013524e-07</iyy>
+          <iyz>1.0576325446187278e-24</iyz>
+          <izz>4.238996264573921e-07</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <!-- Use a downsampled mesh for collisions -->
+            <uri>model://054_softball/google_16k/054_softball.obj</uri>
+            </mesh>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000000000.0</kp>
+              <kd>1</kd>
+              <min_depth>0.0001</min_depth>
+              <max_vel>0.01</max_vel>
+            </ode>
+          </contact>
+          <bounce>
+            <restitution_coefficient>0.1</restitution_coefficient>
+            <threshold>1000.0</threshold>
+          </bounce>
+        </surface>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>model://054_softball/google_16k/054_softball.dae</uri>
+            </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>

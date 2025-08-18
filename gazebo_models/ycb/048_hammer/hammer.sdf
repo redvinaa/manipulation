@@ -1,0 +1,55 @@
+<?xml version='1.0'?>
+<sdf version="1.4">
+  <model name="hammer">
+    <static>false</static>
+    <link name="link">
+      <inertial>
+        <pose>-0.028570860769310643 -0.012672673714671625 0.015653484146085365 -1.392212475849602 -1.5439736609005625 0.18273929130965663</pose>
+        <mass>0.00025894043237553564</mass>
+        <inertia>
+          <ixx>3.0777686441060466e-06</ixx>
+          <ixy>-2.5674952487423044e-25</ixy>
+          <ixz>5.193937136517346e-22</ixz>
+          <iyy>3.0006065150009704e-06</iyy>
+          <iyz>8.274548368865819e-23</iyz>
+          <izz>9.993910910349299e-08</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <!-- Use a downsampled mesh for collisions -->
+            <uri>model://048_hammer/google_16k/048_hammer.obj</uri>
+            </mesh>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000000000.0</kp>
+              <kd>1</kd>
+              <min_depth>0.0001</min_depth>
+              <max_vel>0.01</max_vel>
+            </ode>
+          </contact>
+          <bounce>
+            <restitution_coefficient>0.1</restitution_coefficient>
+            <threshold>1000.0</threshold>
+          </bounce>
+        </surface>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>model://048_hammer/google_16k/048_hammer.dae</uri>
+            </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>

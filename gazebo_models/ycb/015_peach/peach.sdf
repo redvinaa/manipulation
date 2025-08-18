@@ -1,0 +1,55 @@
+<?xml version='1.0'?>
+<sdf version="1.4">
+  <model name="peach">
+    <static>false</static>
+    <link name="link">
+      <inertial>
+        <pose>-0.015047325763457799 0.006783997168206115 0.028259603076768534 -1.5066518783726335 -0.8069487758811774 -0.6699450846973227</pose>
+        <mass>0.00011721380481271601</mass>
+        <inertia>
+          <ixx>4.5876541133455994e-08</ixx>
+          <ixy>5.698598500629543e-24</ixy>
+          <ixz>8.445376820166222e-24</ixz>
+          <iyy>4.444044618666359e-08</iyy>
+          <iyz>8.731817842978328e-24</iyz>
+          <izz>4.0982746223781005e-08</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <!-- Use a downsampled mesh for collisions -->
+            <uri>model://015_peach/google_16k/015_peach.obj</uri>
+            </mesh>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000000000.0</kp>
+              <kd>1</kd>
+              <min_depth>0.0001</min_depth>
+              <max_vel>0.01</max_vel>
+            </ode>
+          </contact>
+          <bounce>
+            <restitution_coefficient>0.1</restitution_coefficient>
+            <threshold>1000.0</threshold>
+          </bounce>
+        </surface>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>model://015_peach/google_16k/015_peach.dae</uri>
+            </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>

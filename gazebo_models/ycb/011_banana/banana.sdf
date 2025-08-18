@@ -1,0 +1,55 @@
+<?xml version='1.0'?>
+<sdf version="1.4">
+  <model name="banana">
+    <static>false</static>
+    <link name="link">
+      <inertial>
+        <pose>-0.00993610244000216 0.004072679186328214 0.01712688923116843 -1.5542738497302573 -1.3696969889633943 -0.3362925442158162</pose>
+        <mass>0.00017153252062943915</mass>
+        <inertia>
+          <ixx>4.2719946419307256e-07</ixx>
+          <ixy>1.5930412749986416e-23</ixy>
+          <ixz>-1.756307001395421e-23</ixz>
+          <iyy>4.107664030738321e-07</iyy>
+          <iyz>1.7914713890611302e-23</iyz>
+          <izz>4.075387802083211e-08</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <!-- Use a downsampled mesh for collisions -->
+            <uri>model://011_banana/google_16k/011_banana.obj</uri>
+            </mesh>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000000000.0</kp>
+              <kd>1</kd>
+              <min_depth>0.0001</min_depth>
+              <max_vel>0.01</max_vel>
+            </ode>
+          </contact>
+          <bounce>
+            <restitution_coefficient>0.1</restitution_coefficient>
+            <threshold>1000.0</threshold>
+          </bounce>
+        </surface>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>model://011_banana/google_16k/011_banana.dae</uri>
+            </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>

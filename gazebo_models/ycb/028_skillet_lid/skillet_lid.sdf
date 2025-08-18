@@ -1,0 +1,55 @@
+<?xml version='1.0'?>
+<sdf version="1.4">
+  <model name="skillet_lid">
+    <static>false</static>
+    <link name="link">
+      <inertial>
+        <pose>0.004614896458822956 0.028319651848624065 0.020098897676742826 -2.532001907955809 -1.561986332013324 1.578749698104965</pose>
+        <mass>9.805221382448382e-05</mass>
+        <inertia>
+          <ixx>1.1814390050589973e-06</ixx>
+          <ixy>1.7442461019689136e-24</ixy>
+          <ixz>-2.7823089060784073e-25</ixz>
+          <iyy>6.859627747664073e-07</iyy>
+          <iyz>-8.842143821340959e-24</iyz>
+          <izz>6.091910622917372e-07</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <!-- Use a downsampled mesh for collisions -->
+            <uri>model://028_skillet_lid/google_16k/028_skillet_lid.obj</uri>
+            </mesh>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000000000.0</kp>
+              <kd>1</kd>
+              <min_depth>0.0001</min_depth>
+              <max_vel>0.01</max_vel>
+            </ode>
+          </contact>
+          <bounce>
+            <restitution_coefficient>0.1</restitution_coefficient>
+            <threshold>1000.0</threshold>
+          </bounce>
+        </surface>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>model://028_skillet_lid/google_16k/028_skillet_lid.dae</uri>
+            </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>

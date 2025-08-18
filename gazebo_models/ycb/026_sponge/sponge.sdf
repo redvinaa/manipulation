@@ -1,0 +1,55 @@
+<?xml version='1.0'?>
+<sdf version="1.4">
+  <model name="sponge">
+    <static>false</static>
+    <link name="link">
+      <inertial>
+        <pose>-0.015842356573766914 0.011520562220217976 0.009372525080597043 -0.982493408670207 1.5523706661387422 0.5776306754619936</pose>
+        <mass>0.00011574257606853668</mass>
+        <inertia>
+          <ixx>1.479069593568663e-07</ixx>
+          <ixy>1.7613067875361302e-24</ixy>
+          <ixz>-9.588617036205246e-24</ixz>
+          <iyy>1.0220649167865074e-07</iyy>
+          <iyz>-3.17833321303784e-25</iyz>
+          <izz>5.0400662180254376e-08</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <!-- Use a downsampled mesh for collisions -->
+            <uri>model://026_sponge/google_16k/026_sponge.obj</uri>
+            </mesh>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000000000.0</kp>
+              <kd>1</kd>
+              <min_depth>0.0001</min_depth>
+              <max_vel>0.01</max_vel>
+            </ode>
+          </contact>
+          <bounce>
+            <restitution_coefficient>0.1</restitution_coefficient>
+            <threshold>1000.0</threshold>
+          </bounce>
+        </surface>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>model://026_sponge/google_16k/026_sponge.dae</uri>
+            </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>

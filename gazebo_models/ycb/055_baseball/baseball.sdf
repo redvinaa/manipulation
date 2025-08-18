@@ -1,0 +1,55 @@
+<?xml version='1.0'?>
+<sdf version="1.4">
+  <model name="baseball">
+    <static>false</static>
+    <link name="link">
+      <inertial>
+        <pose>-0.009947985025210358 -0.04811623557140466 0.03592664752018525 -0.18362772655473816 -0.6241102896770028 -1.49265844247946</pose>
+        <mass>0.00020274709259390355</mass>
+        <inertia>
+          <ixx>1.0826522744418533e-07</ixx>
+          <ixy>3.8010669957573476e-24</ixy>
+          <ixz>1.2661783573836697e-23</ixz>
+          <iyy>1.0766425403851144e-07</iyy>
+          <iyz>2.895950978962709e-24</iyz>
+          <izz>1.0729927220622786e-07</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <!-- Use a downsampled mesh for collisions -->
+            <uri>model://055_baseball/google_16k/055_baseball.obj</uri>
+            </mesh>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000000000.0</kp>
+              <kd>1</kd>
+              <min_depth>0.0001</min_depth>
+              <max_vel>0.01</max_vel>
+            </ode>
+          </contact>
+          <bounce>
+            <restitution_coefficient>0.1</restitution_coefficient>
+            <threshold>1000.0</threshold>
+          </bounce>
+        </surface>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>model://055_baseball/google_16k/055_baseball.dae</uri>
+            </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>

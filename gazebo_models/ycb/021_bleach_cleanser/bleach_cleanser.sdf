@@ -1,0 +1,55 @@
+<?xml version='1.0'?>
+<sdf version="1.4">
+  <model name="bleach_cleanser">
+    <static>false</static>
+    <link name="link">
+      <inertial>
+        <pose>-0.017138949272641094 0.011574369859748879 0.09969796254743375 -3.0710620577865737 0.00011268369926741739 1.560369287349376</pose>
+        <mass>0.0009723430520036826</mass>
+        <inertia>
+          <ixx>4.566127982914441e-06</ixx>
+          <ixy>-5.910757569959553e-23</ixy>
+          <ixz>5.475448255524989e-22</ixz>
+          <iyy>4.251487136560936e-06</iyy>
+          <iyz>4.2870505686121444e-23</iyz>
+          <izz>7.652924492717373e-07</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <!-- Use a downsampled mesh for collisions -->
+            <uri>model://021_bleach_cleanser/google_16k/021_bleach_cleanser.obj</uri>
+            </mesh>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000000000.0</kp>
+              <kd>1</kd>
+              <min_depth>0.0001</min_depth>
+              <max_vel>0.01</max_vel>
+            </ode>
+          </contact>
+          <bounce>
+            <restitution_coefficient>0.1</restitution_coefficient>
+            <threshold>1000.0</threshold>
+          </bounce>
+        </surface>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>model://021_bleach_cleanser/google_16k/021_bleach_cleanser.dae</uri>
+            </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>

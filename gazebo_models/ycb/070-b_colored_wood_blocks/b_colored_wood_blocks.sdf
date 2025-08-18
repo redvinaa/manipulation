@@ -1,0 +1,55 @@
+<?xml version='1.0'?>
+<sdf version="1.4">
+  <model name="b_colored_wood_blocks">
+    <static>false</static>
+    <link name="link">
+      <inertial>
+        <pose>-0.018821263920805856 -0.008818559894969998 0.012633433800824469 2.8243865063450944 -0.601521690822469 2.6738516755627217</pose>
+        <mass>1.6408287444917165e-05</mass>
+        <inertia>
+          <ixx>1.776314179684534e-09</ixx>
+          <ixy>-2.0281536270659942e-25</ixy>
+          <ixz>-2.379918673143858e-25</ixz>
+          <iyy>1.7649600209721163e-09</iyy>
+          <iyz>-3.4245419917391636e-25</iyz>
+          <izz>1.7544145643022807e-09</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <!-- Use a downsampled mesh for collisions -->
+            <uri>model://070-b_colored_wood_blocks/google_16k/070-b_colored_wood_blocks.obj</uri>
+            </mesh>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000000000.0</kp>
+              <kd>1</kd>
+              <min_depth>0.0001</min_depth>
+              <max_vel>0.01</max_vel>
+            </ode>
+          </contact>
+          <bounce>
+            <restitution_coefficient>0.1</restitution_coefficient>
+            <threshold>1000.0</threshold>
+          </bounce>
+        </surface>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>model://070-b_colored_wood_blocks/google_16k/070-b_colored_wood_blocks.dae</uri>
+            </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>

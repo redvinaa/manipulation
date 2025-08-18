@@ -1,0 +1,55 @@
+<?xml version='1.0'?>
+<sdf version="1.4">
+  <model name="a_lego_duplo">
+    <static>false</static>
+    <link name="link">
+      <inertial>
+        <pose>-0.01643867601045112 -0.009535832647545055 0.012146686641689842 -0.9804646714851846 -1.5656577611750397 0.9728745595586037</pose>
+        <mass>1.811737478000783e-05</mass>
+        <inertia>
+          <ixx>6.369074670629602e-09</ixx>
+          <ixy>2.1012384831650313e-25</ixy>
+          <ixz>2.4033816186934367e-27</ixz>
+          <iyy>5.076012341054667e-09</iyy>
+          <iyz>7.551425111982631e-27</iyz>
+          <izz>2.274384521997225e-09</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <!-- Use a downsampled mesh for collisions -->
+            <uri>model://073-a_lego_duplo/google_16k/073-a_lego_duplo.obj</uri>
+            </mesh>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000000000.0</kp>
+              <kd>1</kd>
+              <min_depth>0.0001</min_depth>
+              <max_vel>0.01</max_vel>
+            </ode>
+          </contact>
+          <bounce>
+            <restitution_coefficient>0.1</restitution_coefficient>
+            <threshold>1000.0</threshold>
+          </bounce>
+        </surface>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>model://073-a_lego_duplo/google_16k/073-a_lego_duplo.dae</uri>
+            </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>

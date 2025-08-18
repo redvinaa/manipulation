@@ -1,0 +1,55 @@
+<?xml version='1.0'?>
+<sdf version="1.4">
+  <model name="orange">
+    <static>false</static>
+    <link name="link">
+      <inertial>
+        <pose>-0.007142269033564904 -0.018368262802614648 0.03363364365090191 -1.8314058421219284 0.386611357526003 2.97317089799962</pose>
+        <mass>0.00020272265250081666</mass>
+        <inertia>
+          <ixx>1.096787863191006e-07</ixx>
+          <ixy>-5.303960689671446e-24</ixy>
+          <ixz>1.3548944528656157e-23</ixz>
+          <iyy>1.0738896725229532e-07</iyy>
+          <iyz>2.4781900490888522e-23</iyz>
+          <izz>1.065750028785584e-07</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <!-- Use a downsampled mesh for collisions -->
+            <uri>model://017_orange/google_16k/017_orange.obj</uri>
+            </mesh>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000000000.0</kp>
+              <kd>1</kd>
+              <min_depth>0.0001</min_depth>
+              <max_vel>0.01</max_vel>
+            </ode>
+          </contact>
+          <bounce>
+            <restitution_coefficient>0.1</restitution_coefficient>
+            <threshold>1000.0</threshold>
+          </bounce>
+        </surface>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>model://017_orange/google_16k/017_orange.dae</uri>
+            </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>

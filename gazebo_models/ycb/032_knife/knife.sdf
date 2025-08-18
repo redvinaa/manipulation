@@ -1,0 +1,55 @@
+<?xml version='1.0'?>
+<sdf version="1.4">
+  <model name="knife">
+    <static>false</static>
+    <link name="link">
+      <inertial>
+        <pose>0.008445076147284661 -0.02909263128347303 0.005000385834128537 1.8002288679382237 1.3472770212679417 -1.3518243250563429</pose>
+        <mass>2.1835475900861335e-05</mass>
+        <inertia>
+          <ixx>8.208165528866138e-08</ixx>
+          <ixy>-2.26561083116292e-23</ixy>
+          <ixz>9.447962194824998e-25</ixz>
+          <iyy>8.190889709718928e-08</iyy>
+          <iyz>-1.3535696424378433e-24</iyz>
+          <izz>5.818794340795577e-10</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <!-- Use a downsampled mesh for collisions -->
+            <uri>model://032_knife/google_16k/032_knife.obj</uri>
+            </mesh>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000000000.0</kp>
+              <kd>1</kd>
+              <min_depth>0.0001</min_depth>
+              <max_vel>0.01</max_vel>
+            </ode>
+          </contact>
+          <bounce>
+            <restitution_coefficient>0.1</restitution_coefficient>
+            <threshold>1000.0</threshold>
+          </bounce>
+        </surface>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>model://032_knife/google_16k/032_knife.dae</uri>
+            </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>

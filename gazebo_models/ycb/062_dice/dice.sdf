@@ -1,0 +1,55 @@
+<?xml version='1.0'?>
+<sdf version="1.4">
+  <model name="dice">
+    <static>false</static>
+    <link name="link">
+      <inertial>
+        <pose>-0.011207378509108022 0.009163342961551291 0.008407354793330487 0.03648001627270027 -0.007934211730379474 1.3499916882079912</pose>
+        <mass>4.312016842944167e-06</mass>
+        <inertia>
+          <ixx>1.8875564466856384e-10</ixx>
+          <ixy>1.9036005882262903e-26</ixy>
+          <ixz>4.847554991158686e-27</ixz>
+          <iyy>1.87505671569629e-10</iyy>
+          <iyz>-1.4104788331843086e-26</iyz>
+          <izz>1.7750670628379932e-10</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <!-- Use a downsampled mesh for collisions -->
+            <uri>model://062_dice/google_16k/062_dice.obj</uri>
+            </mesh>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000000000.0</kp>
+              <kd>1</kd>
+              <min_depth>0.0001</min_depth>
+              <max_vel>0.01</max_vel>
+            </ode>
+          </contact>
+          <bounce>
+            <restitution_coefficient>0.1</restitution_coefficient>
+            <threshold>1000.0</threshold>
+          </bounce>
+        </surface>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>model://062_dice/google_16k/062_dice.dae</uri>
+            </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>

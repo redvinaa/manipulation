@@ -1,0 +1,55 @@
+<?xml version='1.0'?>
+<sdf version="1.4">
+  <model name="racquetball">
+    <static>false</static>
+    <link name="link">
+      <inertial>
+        <pose>-0.009071044745210352 -0.12221649947970037 0.027571138362930195 1.0005117249213273 -1.1435365117104113 -2.4792474679433583</pose>
+        <mass>9.106106830055334e-05</mass>
+        <inertia>
+          <ixx>2.844720627973769e-08</ixx>
+          <ixy>2.624990085049321e-24</ixy>
+          <ixz>1.0452217020191828e-25</ixz>
+          <iyy>2.8427175241761365e-08</iyy>
+          <iyz>3.3876931698608794e-25</iyz>
+          <izz>2.8244091340000342e-08</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <!-- Use a downsampled mesh for collisions -->
+            <uri>model://057_racquetball/google_16k/057_racquetball.obj</uri>
+            </mesh>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>0.9</mu>
+              <mu2>0.9</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1000000000000.0</kp>
+              <kd>1</kd>
+              <min_depth>0.0001</min_depth>
+              <max_vel>0.01</max_vel>
+            </ode>
+          </contact>
+          <bounce>
+            <restitution_coefficient>0.1</restitution_coefficient>
+            <threshold>1000.0</threshold>
+          </bounce>
+        </surface>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>model://057_racquetball/google_16k/057_racquetball.dae</uri>
+            </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>
