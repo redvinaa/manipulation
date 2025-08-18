@@ -3,10 +3,10 @@ import random
 from launch import LaunchDescription, LaunchContext
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration
-from launch.conditions import IfCondition
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
+from ros_gz_bridge.actions import RosGzBridge
 
 
 def generate_launch_description() -> LaunchDescription:
@@ -70,29 +70,64 @@ def launch_setup(context: LaunchContext, *args, **kwargs) -> list:
 
     actions = []
 
-    # Launch Gazebo server
-    gz_args = f'-s {world_file}'
-    if not paused:
-        gz_args = '-r ' + gz_args
-    actions.append(
-        IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(
-                os.path.join(ros_gz_sim, 'launch', 'gz_sim.launch.py')
-            ),
-            launch_arguments={'gz_args': gz_args, 'on_exit_shutdown': 'true'}.items()
-        )
-    )
+    actions.append(IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution(
+                [FindPackageShare("ur_simulation_gz"), "launch", "ur_sim_control.launch.py"]
+            )
+        ),
+        launch_arguments={
+            "ur_type": "ur5e",
+            "launch_rviz": "false",
+            "world_file": world_file,
+        }.items(),
+    ))
 
-    # Launch Gazebo GUI (optional)
-    actions.append(
-        IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(
-                os.path.join(ros_gz_sim, 'launch', 'gz_sim.launch.py')
-            ),
-            launch_arguments={'gz_args': '-g ', 'on_exit_shutdown': 'true'}.items(),
-            condition=IfCondition(gazebo_gui)
-        )
-    )
+    actions.append(IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution([
+                FindPackageShare("ur_moveit_config"),
+                "launch",
+                "ur_moveit.launch.py"])),
+        launch_arguments={
+            "ur_type": "ur5e",
+            "use_sim_time": "true",
+            "launch_rviz": "true",
+        }.items(),
+    ))
+
+    bridge_config = os.path.join(pkg_share, 'config', 'camera_bridge.yaml')
+    actions.append(RosGzBridge(
+        bridge_name='gz_bridge',
+        config_file=bridge_config,
+        log_level=log_level,
+        bridge_params=(
+            "'qos_overrides./bin1/left/camera/points.publisher.reliability': 'best_effort'",
+            "'qos_overrides./bin1/right/camera/points.publisher.reliability': 'best_effort'",
+            "'qos_overrides./bin2/left/camera/points.publisher.reliability': 'best_effort'",
+            "'qos_overrides./bin2/right/camera/points.publisher.reliability': 'best_effort'"),
+        # TODO: Remove this after https://github.com/gazebosim/ros_gz/issues/774
+        # gets resolved
+        extra_bridge_params=[{}],
+    ))
+
+    actions.append(Node(
+        package='tf2_ros',
+        executable='static_transform_publisher',
+        name='static_tf_camera',
+        arguments=['--x', '0.5', '--y', '0.3', '--z', '0.4',
+                   '--roll', '0.0', '--pitch', '0.7', '--yaw', '-1.57',
+                   '--frame-id', 'world', '--child-frame-id', 'bin1_cam_left']
+    ))
+    actions.append(Node(
+        package='tf2_ros',
+        executable='static_transform_publisher',
+        name='static_tf_camera',
+        arguments=['--x', '0.5', '--y', '-0.3', '--z', '0.4',
+                   '--roll', '0.0', '--pitch', '0.7', '--yaw', '1.57',
+                   '--frame-id', 'world', '--child-frame-id', 'bin1_cam_right']
+    ))
+    # TODO add bin2 cameras
 
     # Spawn random objects
     random.seed(int(LaunchConfiguration('seed').perform(context)))

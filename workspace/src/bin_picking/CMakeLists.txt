@@ -34,7 +34,7 @@ find_package(OsqpEigen REQUIRED)
 #   DESTINATION lib/${PROJECT_NAME})
 
 # install directories
-install(DIRECTORY worlds launch
+install(DIRECTORY worlds launch config
   DESTINATION share/${PROJECT_NAME}
 )
 
