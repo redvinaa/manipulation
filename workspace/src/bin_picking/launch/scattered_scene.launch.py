@@ -106,9 +106,6 @@ def launch_setup(context: LaunchContext, *args, **kwargs) -> list:
             "'qos_overrides./bin1/right/camera/points.publisher.reliability': 'best_effort'",
             "'qos_overrides./bin2/left/camera/points.publisher.reliability': 'best_effort'",
             "'qos_overrides./bin2/right/camera/points.publisher.reliability': 'best_effort'"),
-        # TODO: Remove this after https://github.com/gazebosim/ros_gz/issues/774
-        # gets resolved
-        extra_bridge_params=[{}],
     ))
 
     actions.append(Node(
