@@ -2,6 +2,30 @@
 
 REPO_ROOT=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
+# Kill all ROS processes
+kill_ros() {
+    GREP_PATTERN="ros|gz|ros-args"
+    GREP_IGNORE_PATTERN="grep|rqt|rviz|teleop|ros2 topic|foxglove|kill_ros"
+
+    PIDS=$(ps -afx | grep -E "$GREP_PATTERN" | grep -v -E "$GREP_IGNORE_PATTERN" | awk '{print $1}')
+    if [ -z "$PIDS" ]; then
+        echo "No ROS processes found"
+        return
+    fi
+    while [ -n "$PIDS" ]; do
+        for PID in $PIDS; do
+            echo "$PID $(ps -p $PID -o comm=)"
+            kill -9 $PID > /dev/null 2>&1
+        done
+
+        sleep 1
+        PIDS=$(ps -afx | grep $GREP_PATTERN | grep -v -e grep | awk '{print $1}')
+    done
+
+    pkill telegraf
+}
+export -f kill_ros
+
 ## Source workspace specific preferences
 export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
 export GZ_SIM_RESOURCE_PATH="$REPO_ROOT/gazebo_models"
