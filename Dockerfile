@@ -54,6 +54,9 @@ RUN if [ -n "$USER_PASSWORD" ]; then \
     fi && \
     usermod -aG sudo,video,dialout ubuntu
 
+# Install ble.sh
+RUN curl -L https://github.com/akinomyoga/ble.sh/releases/download/v0.4.0-devel3/ble-0.4.0-devel3.tar.xz | tar xJf - -C /home/ubuntu
+
 ## Install Eigen library
 RUN git clone https://gitlab.com/libeigen/eigen.git /usr/include/eigen
 
