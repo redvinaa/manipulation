@@ -16,7 +16,7 @@
   <depend>rviz_visual_tools</depend>
   <depend>tf2_eigen</depend>
 
-  <exec_depend>Universal_Robots_ROS2_GZ_Simulation</exec_depend>
+  <exec_depend>ur_simulation_gz</exec_depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

@@ -28,3 +28,8 @@ ros-jazzy-rqt-plot
 ros-jazzy-joint-state-publisher
 ros-jazzy-ros-gz
 ros-jazzy-rviz2
+ros-jazzy-ur-client-library
+ros-jazzy-ur-description
+ros-jazzy-ur-moveit-config
+ros-jazzy-ur-simulation-gz
+ros-jazzy-ur-robot-driver
