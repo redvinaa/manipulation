@@ -12,6 +12,17 @@ This repo stores my code for going through the [MIT course](https://manipulation
 
 Everything is dockerized, run
 ```bash
+# Clone this repo
+git clone git@github.com:redvinaa/manipulation.git
+cd manipulation
+
+# Update submodules
+git submodule update --init --recursive  # get all submodules
+
+# TODO fix this (if this is not ignored, rosdep will fail during docker build)
+touch  ~/manipulation/workspace/src/osqp-eigen/COLCON_IGNORE
+
+# Build and run container
 docker compose build  # build the image
 docker compose up -d  # start the container headlessly
 docker exec -it manipulation bash  # enter the container
