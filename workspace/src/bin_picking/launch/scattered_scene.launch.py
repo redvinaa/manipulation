@@ -49,7 +49,7 @@ def launch_setup(context: LaunchContext, *args, **kwargs) -> list:
     spawn_radius = float(LaunchConfiguration('spawn_radius').perform(context))
 
     # Discover available models (require sdf file)
-    model_dir = "/home/ubuntu/manipulation/gazebo_models/ycb-tools/models/ycb"
+    model_dir = "/home/ubuntu/manipulation/gazebo_models/ycb"
     available_models = []
     for d in sorted(os.listdir(model_dir)):
         folder_path = os.path.join(model_dir, d)
