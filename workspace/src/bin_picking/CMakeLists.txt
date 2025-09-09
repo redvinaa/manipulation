@@ -10,9 +10,11 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
+find_package(tf2_ros REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(tf2_eigen REQUIRED)
 find_package(PCL REQUIRED COMPONENTS common io filters features)
+# find_package(pcl_ros REQUIRED)
 find_package(pcl_conversions REQUIRED)
 find_package(rviz_visual_tools REQUIRED)
 
@@ -34,9 +36,12 @@ target_include_directories(find_grasp_pose PUBLIC
 ament_target_dependencies(find_grasp_pose
   rclcpp
   rclcpp_components
+  tf2_ros
   sensor_msgs
+  # pcl_ros
   pcl_conversions
   rviz_visual_tools
+  tf2_eigen
 )
 
 target_link_libraries(find_grasp_pose

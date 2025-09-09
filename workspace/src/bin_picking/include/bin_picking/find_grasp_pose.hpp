@@ -9,6 +9,9 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/point_cloud2.hpp"
 
+#include <tf2_ros/buffer.h>
+#include <tf2_ros/transform_listener.h>
+
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 
@@ -26,13 +29,18 @@ public:
 private:
   // Parameters
   std::vector<std::string> pointcloud_topics_;
+  std::string target_frame_;
   float voxel_size_;
+  float min_x_, max_x_, min_y_, max_y_, min_z_, max_z_;
 
   // Subscribers
   std::vector<rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr> subscriptions_;
 
+  std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
+  std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
+
   // Storage for processed clouds
-  std::map<std::string, pcl::PointCloud<pcl::PointXYZ>::Ptr> voxelized_clouds_;
+  std::map<std::string, pcl::PointCloud<pcl::PointNormal>::Ptr> clouds_with_normals_;
 
   // Visualization
   rviz_visual_tools::RvizVisualTools visual_tools_;
@@ -42,12 +50,22 @@ private:
     const sensor_msgs::msg::PointCloud2::ConstSharedPtr msg,
     const std::string & topic_name);
 
+  pcl::PointCloud<pcl::PointXYZ>::Ptr transformPointCloud(
+      const pcl::PointCloud<pcl::PointXYZ>::Ptr & cloud,
+      const std::string & target_frame);
+
   // Processing chain
   pcl::PointCloud<pcl::PointXYZ>::Ptr voxelize(
     const pcl::PointCloud<pcl::PointXYZ>::ConstPtr & input,
     float voxel_size);
 
-  pcl::PointCloud<pcl::PointXYZ>::Ptr computeNormals(
+  pcl::PointCloud<pcl::PointXYZ>::Ptr cropPointCloud(
+    const pcl::PointCloud<pcl::PointXYZ>::ConstPtr & input,
+    float min_x, float max_x,
+    float min_y, float max_y,
+    float min_z, float max_z);
+
+  pcl::PointCloud<pcl::PointNormal>::Ptr computeNormals(
     const pcl::PointCloud<pcl::PointXYZ>::ConstPtr & input,
     int k_neighbors);
 

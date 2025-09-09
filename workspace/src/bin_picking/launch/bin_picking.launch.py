@@ -39,7 +39,8 @@ def generate_launch_description() -> LaunchDescription:
     def create_crop_box_node(camera_name: str, parameters: dict) -> ComposableNode:
         parameters.update({
             'use_sim_time': True,
-            'input_frame': 'world'})
+            'input_frame': 'world',
+            'output_frame': 'world'})
         return ComposableNode(
             package="pcl_ros",
             plugin="pcl_ros::CropBox",
@@ -69,22 +70,35 @@ def generate_launch_description() -> LaunchDescription:
                 package='bin_picking',
                 plugin='FindGraspPose',
                 name='find_grasp_pose',
-                #  parameters=[],
+                parameters=[{
+                    'pointcloud_topics': [
+                        '/bin1/left/camera/points',
+                        #  '/bin1/right/camera/points_cropped',
+                    ],
+                    'voxel_size': 0.002,
+                    'target_frame': 'world',
+                    "min_x": bin1_x - bin_size_x/2 + wall_cutoff,
+                    "max_x": bin1_x + bin_size_x/2 - wall_cutoff,
+                    "min_y": bin1_y - bin_size_y/2 + wall_cutoff,
+                    "max_y": bin1_y + bin_size_y/2 - wall_cutoff,
+                    "min_z": wall_cutoff, "max_z": 0.5,
+                    'use_sim_time': True,
+                }],
             ),
-            create_crop_box_node("bin1/left", {
-                "min_x": bin1_x - bin_size_x/2 + wall_cutoff,
-                "max_x": bin1_x + bin_size_x/2 - wall_cutoff,
-                "min_y": bin1_y - bin_size_y/2 + wall_cutoff,
-                "max_y": bin1_y + bin_size_y/2 - wall_cutoff,
-                "min_z": wall_cutoff, "max_z": 0.5,
-            }),
-            create_crop_box_node("bin1/right", {
-                "min_x": bin1_x - bin_size_x/2 + wall_cutoff,
-                "max_x": bin1_x + bin_size_x/2 - wall_cutoff,
-                "min_y": bin1_y - bin_size_y/2 + wall_cutoff,
-                "max_y": bin1_y + bin_size_y/2 - wall_cutoff,
-                "min_z": wall_cutoff, "max_z": 0.5,
-            }),
+            #  create_crop_box_node("bin1/left", {
+            #      "min_x": bin1_x - bin_size_x/2 + wall_cutoff,
+            #      "max_x": bin1_x + bin_size_x/2 - wall_cutoff,
+            #      "min_y": bin1_y - bin_size_y/2 + wall_cutoff,
+            #      "max_y": bin1_y + bin_size_y/2 - wall_cutoff,
+            #      "min_z": wall_cutoff, "max_z": 0.5,
+            #  }),
+            #  create_crop_box_node("bin1/right", {
+            #      "min_x": bin1_x - bin_size_x/2 + wall_cutoff,
+            #      "max_x": bin1_x + bin_size_x/2 - wall_cutoff,
+            #      "min_y": bin1_y - bin_size_y/2 + wall_cutoff,
+            #      "max_y": bin1_y + bin_size_y/2 - wall_cutoff,
+            #      "min_z": wall_cutoff, "max_z": 0.5,
+            #  }),
         ],
         output='screen',
     ))

@@ -11,13 +11,13 @@
 
   <depend>rclcpp</depend>
   <depend>rclcpp_components</depend>
-  <depend>sensor_msgs</depend>
+  <depend>tf2_ros</depend>
   <depend>tf2_eigen</depend>
+  <depend>sensor_msgs</depend>
   <depend>pcl_ros</depend>
   <depend>pcl_conversions</depend>
   <depend>rviz_visual_tools</depend>
 
-  <exec_depend>tf2_ros</exec_depend>
   <exec_depend>ur_simulation_gz</exec_depend>
 
   <test_depend>ament_lint_auto</test_depend>

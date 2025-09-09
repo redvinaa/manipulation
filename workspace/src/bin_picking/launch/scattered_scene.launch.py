@@ -14,6 +14,7 @@ def generate_launch_description() -> LaunchDescription:
     declared_arguments = [
         DeclareLaunchArgument('world_file', default_value='',
                               description='SDF world file to load'),
+        DeclareLaunchArgument('gazebo_gui', default_value='true', description='Enable Gazebo GUI'),
         DeclareLaunchArgument('paused', default_value='false', description='Start simulation paused'),
         DeclareLaunchArgument('num_objects', default_value='4', description='Number of objects to spawn'),
         DeclareLaunchArgument('spawn_height_min', default_value='0.2', description='Minimum spawn height'),
