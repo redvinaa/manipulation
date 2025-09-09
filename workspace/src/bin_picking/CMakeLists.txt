@@ -1,53 +1,69 @@
 cmake_minimum_required(VERSION 3.8)
 project(bin_picking)
 
-# find dependencies
+# Default to C++17
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 17)
+endif()
+
+# Dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(std_msgs REQUIRED)
-find_package(geometry_msgs REQUIRED)
-find_package(rviz_visual_tools REQUIRED)
+find_package(rclcpp_components REQUIRED)
+find_package(sensor_msgs REQUIRED)
 find_package(tf2_eigen REQUIRED)
-find_package(Eigen3 REQUIRED)
-find_package(backward_ros REQUIRED)
+find_package(PCL REQUIRED COMPONENTS common io filters features)
+find_package(pcl_conversions REQUIRED)
+find_package(rviz_visual_tools REQUIRED)
 
-find_package(OsqpEigen REQUIRED)
+include_directories(
+  include
+  ${PCL_INCLUDE_DIRS}
+)
 
-# add_executable(icp_with_segmentation src/icp_with_segmentation.cpp)
-# target_include_directories(icp_with_segmentation PUBLIC
-#   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-#   $<INSTALL_INTERFACE:include/${PROJECT_NAME}>)
-# target_compile_features(icp_with_segmentation PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
-# target_link_libraries(icp_with_segmentation OsqpEigen::OsqpEigen)
-# ament_target_dependencies(
-#   icp_with_segmentation
-#   "rclcpp"
-#   "std_msgs"
-#   "geometry_msgs"
-#   "rviz_visual_tools"
-#   "tf2_eigen"
-#   "Eigen3"
-#   "backward_ros"
-# )
+# === Library (Composable Node) ===
+add_library(find_grasp_pose SHARED
+  src/find_grasp_pose.cpp
+)
 
-# install(TARGETS icp_with_segmentation
-#   DESTINATION lib/${PROJECT_NAME})
+target_include_directories(find_grasp_pose PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
 
-# install directories
-install(DIRECTORY worlds launch config
+ament_target_dependencies(find_grasp_pose
+  rclcpp
+  rclcpp_components
+  sensor_msgs
+  pcl_conversions
+  rviz_visual_tools
+)
+
+target_link_libraries(find_grasp_pose
+  ${PCL_LIBRARIES}
+)
+
+# Register composable node
+rclcpp_components_register_nodes(find_grasp_pose "FindGraspPose")
+
+# === Install ===
+install(
+  DIRECTORY include/
+  DESTINATION include
+)
+
+install(
+  DIRECTORY launch config worlds
   DESTINATION share/${PROJECT_NAME}
 )
 
-if(BUILD_TESTING)
-  find_package(ament_lint_auto REQUIRED)
-  # the following line skips the linter which checks for copyrights
-  # comment the line when a copyright and license is added to all source files
-  set(ament_cmake_copyright_FOUND TRUE)
-  # the following line skips cpplint (only works in a git repo)
-  # comment the line when this package is in a git repo and when
-  # a copyright and license is added to all source files
-  set(ament_cmake_cpplint_FOUND TRUE)
-  ament_lint_auto_find_test_dependencies()
-endif()
+install(
+  TARGETS find_grasp_pose
+  EXPORT export_find_grasp_pose
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+  INCLUDES DESTINATION include
+)
 
 ament_package()
