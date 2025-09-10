@@ -25,6 +25,7 @@ FindGraspPose::FindGraspPose(const rclcpp::NodeOptions & options)
 
   declare_parameter<float>("voxel_size", 0.01f);
   voxel_size_ = get_parameter("voxel_size").as_double();
+
   declare_parameter<float>("min_x", -std::numeric_limits<float>::max());
   min_x_ = get_parameter("min_x").as_double();
   declare_parameter<float>("max_x", std::numeric_limits<float>::max());
@@ -63,92 +64,98 @@ void FindGraspPose::pointCloudCallback(
   const sensor_msgs::msg::PointCloud2::ConstSharedPtr msg,
   const std::string & topic_name)
 {
-  MeasureExecutionTime timer("pointCloudCallback");
+  MeasureExecutionTimeScoped timer("pointCloudCallback");
 
   // Convert ROS msg -> PCL cloud
+  MeasureExecutionTime timer_conv("fromROSMsg");
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>());
   pcl::fromROSMsg(*msg, *cloud);
+  timer_conv.stop();
 
-  RCLCPP_INFO(get_logger(), "Received cloud from %s with %zu points",
+  RCLCPP_INFO(get_logger(), "==== Received cloud from %s with %zu points ====",
               topic_name.c_str(), cloud->size());
 
-  auto transformed_cloud = transformPointCloud(cloud, target_frame_);
-
-  // Voxelize
-  float voxel_size = 0.01f;  // could be parameterized
-  auto voxelized = voxelize(transformed_cloud, voxel_size);
+  MeasureExecutionTime timer_transform("transformPointCloud");
+  cloud = transformPointCloud(cloud, target_frame_);
+  timer_transform.stop();
 
   // Crop to region of interest
-  auto voxelized_cropped = cropPointCloud(voxelized, min_x_, max_x_, min_y_, max_y_, min_z_, max_z_);
+  MeasureExecutionTime timer_crop("cropPointCloud");
+  cloud = cropPointCloud(cloud, min_x_, max_x_, min_y_, max_y_, min_z_, max_z_);
+  timer_crop.stop();
 
   // Compute normals (optional, may be used later)
-  int k_neighbors = 10;
-  auto with_normals = computeNormals(voxelized_cropped, k_neighbors);
+  MeasureExecutionTime timer_normals("computeNormals");
+  geometry_msgs::msg::Point viewpoint;
+  try {
+    auto transform_stamped = tf_buffer_->lookupTransform(
+        target_frame_, msg->header.frame_id, rclcpp::Time(0));
+    viewpoint.x = transform_stamped.transform.translation.x;
+    viewpoint.y = transform_stamped.transform.translation.y;
+    viewpoint.z = transform_stamped.transform.translation.z;
+  } catch (const tf2::TransformException& ex) {
+    RCLCPP_WARN(this->get_logger(), "Could not get camera_link position: %s", ex.what());
+    viewpoint.x = viewpoint.y = viewpoint.z = 0.0;
+  }
+  auto with_normals = computeNormals(cloud, viewpoint);
+  timer_normals.stop();
 
   // Store voxelized cloud
   clouds_with_normals_[topic_name] = with_normals;
 
-  // Visualize normals as lines
-  visual_tools_.deleteAllMarkers();
-  for (size_t i = 0; i < with_normals->size(); i += 10) {  // visualize every 10th normal
-    const auto & pt = with_normals->points[i];
-    if (!std::isnan(pt.normal_x) && !std::isnan(pt.normal_y) && !std::isnan(pt.normal_z)) {
-      Eigen::Vector3d start(pt.x, pt.y, pt.z);
-      Eigen::Vector3d end(pt.x + 0.05 * pt.normal_x,
-                          pt.y + 0.05 * pt.normal_y,
-                          pt.z + 0.05 * pt.normal_z);
-      visual_tools_.publishLine(
-        start, end, rviz_visual_tools::Colors::RED, rviz_visual_tools::Scales::XXSMALL);
-    }
-  }
-  visual_tools_.trigger();
-
   // Visualize (optional, here just show cloud size in console)
   RCLCPP_INFO(get_logger(),
               "Processed voxelized cloud from %s with %zu points",
-              topic_name.c_str(), voxelized->size());
-}
+              topic_name.c_str(), with_normals->size());
 
-pcl::PointCloud<pcl::PointXYZ>::Ptr FindGraspPose::voxelize(
-  const pcl::PointCloud<pcl::PointXYZ>::ConstPtr & input,
-  float voxel_size)
-{
-  pcl::VoxelGrid<pcl::PointXYZ> sor;
-  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>());
-  sor.setInputCloud(input);
-  sor.setLeafSize(voxel_size, voxel_size, voxel_size);
-  sor.filter(*cloud_filtered);
-  return cloud_filtered;
+  // If we have received clouds from all topics, merge them
+  if (clouds_with_normals_.size() == pointcloud_topics_.size()) {
+    std::vector<pcl::PointCloud<pcl::PointNormal>::ConstPtr> cloud_vec;
+    cloud_vec.reserve(clouds_with_normals_.size());
+    for (auto &kv : clouds_with_normals_) {
+      cloud_vec.push_back(kv.second);
+    }
+
+    MeasureExecutionTime timer_merge("mergeClouds");
+    const auto merged_cloud = mergeClouds(cloud_vec, voxel_size_);
+    timer_merge.stop();
+
+    // Clear stored clouds for next round
+    clouds_with_normals_.clear();
+
+    // Visualize normals as lines
+    visual_tools_.deleteAllMarkers();
+    for (size_t i = 0; i < merged_cloud->size(); i += 10) {  // visualize every 10th normal
+      const auto & pt = merged_cloud->points[i];
+      if (!std::isnan(pt.normal_x) && !std::isnan(pt.normal_y) && !std::isnan(pt.normal_z)) {
+        Eigen::Vector3d start(pt.x, pt.y, pt.z);
+        Eigen::Vector3d end(pt.x + 0.02 * pt.normal_x,
+                            pt.y + 0.02 * pt.normal_y,
+                            pt.z + 0.02 * pt.normal_z);
+        visual_tools_.publishLine(
+          start, end, rviz_visual_tools::Colors::BLACK, rviz_visual_tools::Scales::XXXXSMALL);
+      }
+    }
+    visual_tools_.trigger();
+  }
 }
 
 pcl::PointCloud<pcl::PointXYZ>::Ptr FindGraspPose::transformPointCloud(
-    const pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud,
-    const std::string& target_frame)
+    const pcl::PointCloud<pcl::PointXYZ>::ConstPtr & cloud,
+    const std::string & target_frame)
 {
   // Lookup the transform from cloud frame to target frame
   geometry_msgs::msg::TransformStamped transform_stamped;
   try {
       transform_stamped = tf_buffer_->lookupTransform(
           target_frame, cloud->header.frame_id,
-          rclcpp::Time(cloud->header.stamp));  //, rclcpp::Duration::from_seconds(0.1));
+          rclcpp::Time(cloud->header.stamp));
   } catch (const tf2::TransformException& ex) {
       RCLCPP_WARN(this->get_logger(), "Could not transform point cloud: %s", ex.what());
       return nullptr;
   }
 
   // Convert geometry_msgs Transform to Eigen Affine3f
-  Eigen::Affine3f transform_1 = Eigen::Affine3f::Identity();
-  transform_1.translation() <<
-      transform_stamped.transform.translation.x,
-      transform_stamped.transform.translation.y,
-      transform_stamped.transform.translation.z;
-  Eigen::Quaternionf q(
-      transform_stamped.transform.rotation.w,
-      transform_stamped.transform.rotation.x,
-      transform_stamped.transform.rotation.y,
-      transform_stamped.transform.rotation.z);
-  transform_1.rotate(q);
-  // Alternatively, use Eigen directly
   Eigen::Affine3f transform_eigen = Eigen::Affine3f::Identity();
   transform_eigen.translation() <<
       transform_stamped.transform.translation.x,
@@ -160,10 +167,9 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr FindGraspPose::transformPointCloud(
       transform_stamped.transform.rotation.y,
       transform_stamped.transform.rotation.z).toRotationMatrix();
 
-  // Executing the transformation
-  pcl::PointCloud<pcl::PointXYZ>::Ptr transformed_cloud (new pcl::PointCloud<pcl::PointXYZ> ());
-  // You can either apply transform_1 or transform_2; they are the same
-  pcl::transformPointCloud (*cloud, *transformed_cloud, transform_eigen);
+  // Execute the transformation
+  pcl::PointCloud<pcl::PointXYZ>::Ptr transformed_cloud (new pcl::PointCloud<pcl::PointXYZ>());
+  pcl::transformPointCloud(*cloud, *transformed_cloud, transform_eigen);
 
   return transformed_cloud;
 }
@@ -195,7 +201,8 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr FindGraspPose::cropPointCloud(
 
 pcl::PointCloud<pcl::PointNormal>::Ptr FindGraspPose::computeNormals(
   const pcl::PointCloud<pcl::PointXYZ>::ConstPtr & input,
-  int k_neighbors)
+  const geometry_msgs::msg::Point & viewpoint,
+  const int k_neighbors)
 {
   pcl::NormalEstimation<pcl::PointXYZ, pcl::Normal> ne;
   ne.setInputCloud(input);
@@ -203,6 +210,7 @@ pcl::PointCloud<pcl::PointNormal>::Ptr FindGraspPose::computeNormals(
   pcl::search::KdTree<pcl::PointXYZ>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZ>());
   ne.setSearchMethod(tree);
   ne.setKSearch(k_neighbors);
+  ne.setViewPoint(viewpoint.x, viewpoint.y, viewpoint.z);
 
   pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>());
   ne.compute(*normals);
@@ -212,17 +220,33 @@ pcl::PointCloud<pcl::PointNormal>::Ptr FindGraspPose::computeNormals(
   return cloud_with_normals;
 }
 
-pcl::PointCloud<pcl::PointXYZ>::Ptr FindGraspPose::mergeVoxelizedClouds(
-  const std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> & clouds)
+pcl::PointCloud<pcl::PointNormal>::Ptr FindGraspPose::mergeClouds(
+  const std::vector<pcl::PointCloud<pcl::PointNormal>::ConstPtr> & clouds,
+  const float voxel_size)
 {
-  pcl::PointCloud<pcl::PointXYZ>::Ptr merged(new pcl::PointCloud<pcl::PointXYZ>());
-  for (const auto & c : clouds) {
-    if (c && !c->empty()) {
-      *merged += *c;
+  // Concatenate all point clouds into one
+  pcl::PointCloud<pcl::PointNormal>::Ptr merged(new pcl::PointCloud<pcl::PointNormal>());
+  for (const auto &cloud : clouds) {
+    if (cloud && !cloud->empty()) {
+      *merged += *cloud;
     }
   }
-  RCLCPP_INFO(get_logger(), "Merged cloud has %zu points", merged->size());
-  return merged;
+
+  RCLCPP_INFO(this->get_logger(), "Merged cloud contains %zu points before downsampling", merged->size());
+
+  // Apply VoxelGrid filter to downsample
+  pcl::VoxelGrid<pcl::PointNormal> voxel_filter;
+  voxel_filter.setInputCloud(merged);
+  voxel_filter.setLeafSize(voxel_size, voxel_size, voxel_size);  // cubic voxel grid :contentReference[oaicite:1]{index=1}
+
+  pcl::PointCloud<pcl::PointNormal>::Ptr downsampled(new pcl::PointCloud<pcl::PointNormal>());
+  voxel_filter.filter(*downsampled);
+
+  RCLCPP_INFO(
+    this->get_logger(), "Downsampled cloud contains %zu points after voxel grid size %.3f",
+    downsampled->size(), voxel_size);
+
+  return downsampled;
 }
 
 }  // namespace bin_picking

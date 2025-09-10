@@ -73,9 +73,10 @@ def generate_launch_description() -> LaunchDescription:
                 parameters=[{
                     'pointcloud_topics': [
                         '/bin1/left/camera/points',
-                        #  '/bin1/right/camera/points_cropped',
+                        '/bin1/right/camera/points',
                     ],
-                    'voxel_size': 0.002,
+                    'voxel_size': 0.005,
+                    'publish_cropped_clouds': True,
                     'target_frame': 'world',
                     "min_x": bin1_x - bin_size_x/2 + wall_cutoff,
                     "max_x": bin1_x + bin_size_x/2 - wall_cutoff,

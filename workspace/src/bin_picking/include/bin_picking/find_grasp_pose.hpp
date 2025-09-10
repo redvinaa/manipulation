@@ -33,7 +33,7 @@ private:
   float voxel_size_;
   float min_x_, max_x_, min_y_, max_y_, min_z_, max_z_;
 
-  // Subscribers
+  // Interfaces
   std::vector<rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr> subscriptions_;
 
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
@@ -51,13 +51,8 @@ private:
     const std::string & topic_name);
 
   pcl::PointCloud<pcl::PointXYZ>::Ptr transformPointCloud(
-      const pcl::PointCloud<pcl::PointXYZ>::Ptr & cloud,
+      const pcl::PointCloud<pcl::PointXYZ>::ConstPtr & cloud,
       const std::string & target_frame);
-
-  // Processing chain
-  pcl::PointCloud<pcl::PointXYZ>::Ptr voxelize(
-    const pcl::PointCloud<pcl::PointXYZ>::ConstPtr & input,
-    float voxel_size);
 
   pcl::PointCloud<pcl::PointXYZ>::Ptr cropPointCloud(
     const pcl::PointCloud<pcl::PointXYZ>::ConstPtr & input,
@@ -67,11 +62,13 @@ private:
 
   pcl::PointCloud<pcl::PointNormal>::Ptr computeNormals(
     const pcl::PointCloud<pcl::PointXYZ>::ConstPtr & input,
-    int k_neighbors);
+    const geometry_msgs::msg::Point & viewpoint = geometry_msgs::msg::Point(),
+    const int k_neighbors = 10);
 
   // Merge all voxelized clouds stored in voxelized_clouds_
-  pcl::PointCloud<pcl::PointXYZ>::Ptr mergeVoxelizedClouds(
-    const std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> & clouds);
+  pcl::PointCloud<pcl::PointNormal>::Ptr mergeClouds(
+    const std::vector<pcl::PointCloud<pcl::PointNormal>::ConstPtr> & clouds,
+    const float voxel_size);
 };
 
 }  // namespace bin_picking
