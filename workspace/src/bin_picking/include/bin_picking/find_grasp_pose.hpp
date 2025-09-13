@@ -43,7 +43,9 @@ private:
   std::map<std::string, pcl::PointCloud<pcl::PointNormal>::Ptr> clouds_with_normals_;
 
   // Visualization
-  rviz_visual_tools::RvizVisualTools visual_tools_;
+  std::shared_ptr<rviz_visual_tools::RvizVisualTools> visual_tools_;
+  rclcpp::Node::SharedPtr vis_tools_node_;
+  std::thread vis_tools_thread_;
 
   // Subscriber callback
   void pointCloudCallback(
@@ -65,10 +67,17 @@ private:
     const geometry_msgs::msg::Point & viewpoint = geometry_msgs::msg::Point(),
     const int k_neighbors = 10);
 
+  pcl::PointCloud<pcl::PrincipalCurvatures>::Ptr computePrincipalCurvatures(
+    const pcl::PointCloud<pcl::PointNormal>::ConstPtr & input,
+    const int k_neighbors = 10);
+
   // Merge all voxelized clouds stored in voxelized_clouds_
   pcl::PointCloud<pcl::PointNormal>::Ptr mergeClouds(
     const std::vector<pcl::PointCloud<pcl::PointNormal>::ConstPtr> & clouds,
     const float voxel_size);
+
+  geometry_msgs::msg::Pose findGraspPose(
+    const pcl::PointCloud<pcl::PointNormal>::ConstPtr & cloud);
 };
 
 }  // namespace bin_picking

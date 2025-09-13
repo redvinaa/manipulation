@@ -5,6 +5,7 @@
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/filters/crop_box.h>
 #include <pcl/features/normal_3d.h>
+#include <pcl/features/principal_curvatures.h>
 #include <pcl/common/transforms.h>
 #include <pcl/common/io.h>  // for concatenatePointCloud
 
@@ -13,8 +14,7 @@ namespace bin_picking
 {
 
 FindGraspPose::FindGraspPose(const rclcpp::NodeOptions & options)
-: Node("find_grasp_pose", options),
-  visual_tools_("world", "/rviz_visual_tools", this)  // TODO use target_frame_
+: Node("find_grasp_pose", options)
 {
   // Declare parameter for pointcloud topics
   declare_parameter<std::vector<std::string>>("pointcloud_topics", {});
@@ -22,6 +22,20 @@ FindGraspPose::FindGraspPose(const rclcpp::NodeOptions & options)
 
   declare_parameter<std::string>("target_frame", "world");
   target_frame_ = get_parameter("target_frame").as_string();
+
+  /* Initialize visualization tools
+   * (we need this trick to make remote control work,
+   * because it needs a node that's already spinning here
+   * in the constructor)
+   */
+  vis_tools_node_ = std::make_shared<rclcpp::Node>(
+    "find_grasp_pose_visual_tools", options);
+  vis_tools_thread_ = std::thread([this]() {
+      rclcpp::spin(vis_tools_node_);
+    });
+  visual_tools_ = std::make_shared<rviz_visual_tools::RvizVisualTools>(
+    target_frame_, "/rviz_visual_tools", vis_tools_node_);
+  visual_tools_->loadRemoteControl();
 
   declare_parameter<float>("voxel_size", 0.01f);
   voxel_size_ = get_parameter("voxel_size").as_double();
@@ -124,19 +138,66 @@ void FindGraspPose::pointCloudCallback(
     clouds_with_normals_.clear();
 
     // Visualize normals as lines
-    visual_tools_.deleteAllMarkers();
+    visual_tools_->deleteAllMarkers();
     for (size_t i = 0; i < merged_cloud->size(); i += 10) {  // visualize every 10th normal
       const auto & pt = merged_cloud->points[i];
       if (!std::isnan(pt.normal_x) && !std::isnan(pt.normal_y) && !std::isnan(pt.normal_z)) {
         Eigen::Vector3d start(pt.x, pt.y, pt.z);
-        Eigen::Vector3d end(pt.x + 0.02 * pt.normal_x,
-                            pt.y + 0.02 * pt.normal_y,
-                            pt.z + 0.02 * pt.normal_z);
-        visual_tools_.publishLine(
-          start, end, rviz_visual_tools::Colors::BLACK, rviz_visual_tools::Scales::XXXXSMALL);
+        Eigen::Vector3d end(pt.x + 0.01 * pt.normal_x,
+                            pt.y + 0.01 * pt.normal_y,
+                            pt.z + 0.01 * pt.normal_z);
+
+        // Color based on curvature
+        rviz_visual_tools::Colors color;
+        if (pt.curvature < 0.01)
+          color = rviz_visual_tools::GREEN;
+        else if (pt.curvature < 0.03)
+          color = rviz_visual_tools::YELLOW;
+        else
+          color = rviz_visual_tools::RED;
+
+        visual_tools_->publishLine(
+          start, end, color, rviz_visual_tools::Scales::XXXXSMALL);
       }
     }
-    visual_tools_.trigger();
+    visual_tools_->trigger();
+
+    // Compute principal curvatures
+    MeasureExecutionTime timer_pcs("computePrincipalCurvatures");
+    auto pcs = computePrincipalCurvatures(merged_cloud);
+    timer_pcs.stop();
+
+    // Generate random test point
+    const size_t idx = std::rand() % merged_cloud->size();
+
+    /* Find Darboux frame
+     * x axis: direction of maximum curvature (principal curvature)
+     * y axis: surface normal pointing inwards
+     * z axis: minor axis of curvature (cross product of x and y)
+     */
+    const auto & pt = merged_cloud->points[idx];
+    Eigen::Vector3f p(pt.x, pt.y, pt.z);
+
+    const auto & curvature = pcs->points[idx];
+    Eigen::Vector3f n(pt.normal_x, pt.normal_y, pt.normal_z);
+    n = -n / n.norm(); // Unit normal pointing inwards
+    Eigen::Vector3f d1(curvature.principal_curvature_x, curvature.principal_curvature_y, curvature.principal_curvature_z);
+    d1.normalize();
+
+    Eigen::Vector3f d2 = d1.cross(n);
+    // d2.normalize();  // already unit length
+    Eigen::Matrix3f R;
+    R.col(0) = d1;
+    R.col(1) = n;
+    R.col(2) = d2;
+
+    Eigen::Isometry3f T = Eigen::Isometry3f::Identity();
+    T.translation() = p;
+    T.linear() = R;
+    visual_tools_->publishAxisLabeled(T.cast<double>(), "Darboux Frame");
+    visual_tools_->trigger();
+
+    visual_tools_->prompt("Press 'next' in the RvizVisualToolsGui to continue");
   }
 }
 
@@ -218,6 +279,30 @@ pcl::PointCloud<pcl::PointNormal>::Ptr FindGraspPose::computeNormals(
   pcl::PointCloud<pcl::PointNormal>::Ptr cloud_with_normals(new pcl::PointCloud<pcl::PointNormal>());
   pcl::concatenateFields(*input, *normals, *cloud_with_normals);
   return cloud_with_normals;
+}
+
+pcl::PointCloud<pcl::PrincipalCurvatures>::Ptr FindGraspPose::computePrincipalCurvatures(
+  const pcl::PointCloud<pcl::PointNormal>::ConstPtr & input,
+  const int k_neighbors)
+{
+  pcl::PrincipalCurvaturesEstimation<pcl::PointXYZ, pcl::Normal, pcl::PrincipalCurvatures> pce;
+
+  // Separate points and normals
+  pcl::PointCloud<pcl::PointXYZ>::Ptr points(new pcl::PointCloud<pcl::PointXYZ>());
+  pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>());
+  pcl::copyPointCloud(*input, *points);
+  pcl::copyPointCloud(*input, *normals);
+  pce.setInputCloud(points);
+  pce.setInputNormals(normals);
+
+  pcl::search::KdTree<pcl::PointXYZ>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZ>());
+  pce.setSearchMethod(tree);
+  pce.setKSearch(k_neighbors);
+
+  pcl::PointCloud<pcl::PrincipalCurvatures>::Ptr pcs(new pcl::PointCloud<pcl::PrincipalCurvatures>());
+  pce.compute(*pcs);
+
+  return pcs;
 }
 
 pcl::PointCloud<pcl::PointNormal>::Ptr FindGraspPose::mergeClouds(

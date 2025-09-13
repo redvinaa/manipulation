@@ -33,3 +33,4 @@ ros-jazzy-ur-description
 ros-jazzy-ur-moveit-config
 ros-jazzy-ur-simulation-gz
 ros-jazzy-ur-robot-driver
+ros-jazzy-pcl-ros

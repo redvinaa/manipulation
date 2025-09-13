@@ -4,3 +4,5 @@
 - reduce collision mesh size
 - add gazebo_gui launch param
 - sync pointclouds
+- make some functions static
+- use pcl::CropBox

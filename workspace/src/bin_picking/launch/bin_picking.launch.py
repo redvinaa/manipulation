@@ -75,7 +75,7 @@ def generate_launch_description() -> LaunchDescription:
                         '/bin1/left/camera/points',
                         '/bin1/right/camera/points',
                     ],
-                    'voxel_size': 0.005,
+                    'voxel_size': 0.01,
                     'publish_cropped_clouds': True,
                     'target_frame': 'world',
                     "min_x": bin1_x - bin_size_x/2 + wall_cutoff,
