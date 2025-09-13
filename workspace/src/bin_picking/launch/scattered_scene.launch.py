@@ -1,7 +1,8 @@
 import os
 import random
 from launch import LaunchDescription, LaunchContext
-from launch.actions import DeclareLaunchArgument, OpaqueFunction
+from launch.actions import DeclareLaunchArgument, OpaqueFunction, ExecuteProcess
+from launch.conditions import IfCondition
 from launch_ros.actions import Node
 from launch.substitutions import LaunchConfiguration
 from launch_ros.substitutions import FindPackageShare
@@ -14,7 +15,7 @@ def generate_launch_description() -> LaunchDescription:
     declared_arguments = [
         DeclareLaunchArgument('world_file', default_value='',
                               description='SDF world file to load'),
-        DeclareLaunchArgument('gazebo_gui', default_value='true', description='Enable Gazebo GUI'),
+        DeclareLaunchArgument('gazebo_gui', default_value='false', description='Enable Gazebo GUI'),
         DeclareLaunchArgument('paused', default_value='false', description='Start simulation paused'),
         DeclareLaunchArgument('num_objects', default_value='4', description='Number of objects to spawn'),
         DeclareLaunchArgument('spawn_height_min', default_value='0.2', description='Minimum spawn height'),
@@ -46,16 +47,19 @@ def launch_setup(context: LaunchContext, *args, **kwargs) -> list:
     actions = []
 
     # Launch Gazebo world
-    actions.append(IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(
-                FindPackageShare("ros_gz_sim").find("ros_gz_sim"),
-                "launch", "gz_sim.launch.py"
-            )
-        ),
-        launch_arguments={
-            "gz_args": f"-r {world_file}"
-        }.items(),
+    gz_gui = LaunchConfiguration('gazebo_gui')
+
+    # Start Gazebo Sim server (headless)
+    actions.append(ExecuteProcess(
+        cmd=["gz", "sim", "-r", "-s", world_file],
+        output="screen"
+    ))
+
+    # Start Gazebo Sim GUI, only if gazebo_gui is true
+    actions.append(ExecuteProcess(
+        condition=IfCondition(LaunchConfiguration("gazebo_gui")),
+        cmd=["gz", "sim", "-g"],
+        output="screen"
     ))
 
     # Discover available models
