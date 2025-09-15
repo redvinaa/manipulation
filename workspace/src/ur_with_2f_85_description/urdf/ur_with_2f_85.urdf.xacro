@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://wiki.ros.org/xacro" name="robotiq_gripper">
+    <xacro:include filename="$(find ur_simulation_gz)/urdf/ur_gz.urdf.xacro" />
+
+    <xacro:include filename="$(find robotiq_description)/urdf/robotiq_2f_85_macro.urdf.xacro" />
+    <xacro:robotiq_gripper
+            name="RobotiqGripperHardwareInterface"
+            prefix=""
+            parent="tool0"
+            sim_gazebo="true"
+            use_fake_hardware="true">
+        <origin xyz="0 0 0" rpy="0 0 0" />
+    </xacro:robotiq_gripper>
+</robot>

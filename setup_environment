@@ -28,7 +28,7 @@ export -f kill_ros
 
 ## Source workspace specific preferences
 export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
-export GZ_SIM_RESOURCE_PATH="$REPO_ROOT/gazebo_models:$REPO_ROOT/gazebo_models/ycb"
+export GZ_SIM_RESOURCE_PATH="$REPO_ROOT/gazebo_models:$REPO_ROOT/gazebo_models/ycb:$REPO_ROOT/workspace/install/robotiq_description/share"
 export USER="ubuntu"
 export IP=`hostname -I | cut -d ' ' -f 1`
 

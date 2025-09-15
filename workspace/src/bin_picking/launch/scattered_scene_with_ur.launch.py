@@ -1,13 +1,12 @@
 import os
 import random
 from launch import LaunchDescription, LaunchContext
-from launch.actions import DeclareLaunchArgument, OpaqueFunction, ExecuteProcess
+from launch.actions import DeclareLaunchArgument, OpaqueFunction, IncludeLaunchDescription
 from launch.conditions import IfCondition
-from launch_ros.actions import Node
 from launch.substitutions import LaunchConfiguration
 from launch_ros.substitutions import FindPackageShare
-from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch_ros.actions import Node
 from ros_gz_bridge.actions import RosGzBridge
 
 
@@ -15,8 +14,6 @@ def generate_launch_description() -> LaunchDescription:
     declared_arguments = [
         DeclareLaunchArgument('world_file', default_value='',
                               description='SDF world file to load'),
-        DeclareLaunchArgument('gazebo_gui', default_value='false', description='Enable Gazebo GUI'),
-        DeclareLaunchArgument('paused', default_value='false', description='Start simulation paused'),
         DeclareLaunchArgument('num_objects', default_value='4', description='Number of objects to spawn'),
         DeclareLaunchArgument('spawn_height_min', default_value='0.2', description='Minimum spawn height'),
         DeclareLaunchArgument('spawn_height_diff', default_value='0.1', description='Height difference between stacked objects'),
@@ -24,6 +21,8 @@ def generate_launch_description() -> LaunchDescription:
         DeclareLaunchArgument('spawn_center_y', default_value='0.0', description='Center Y position for random spawn'),
         DeclareLaunchArgument('spawn_radius', default_value='0.1', description='Radius for random spawn distribution'),
         DeclareLaunchArgument('seed', default_value='2', description='Random seed for reproducibility'),
+        DeclareLaunchArgument('only_mustard_bottle', default_value='true',
+                              description='Spawn only the mustard bottle if true'),
     ]
 
     return LaunchDescription(declared_arguments + [
@@ -33,9 +32,8 @@ def generate_launch_description() -> LaunchDescription:
 
 def launch_setup(context: LaunchContext, *args, **kwargs) -> list:
     pkg_share = FindPackageShare(package='bin_picking').find('bin_picking')
-
     world_file = LaunchConfiguration('world_file').perform(context) or \
-        os.path.join(pkg_share, 'worlds', 'empty_bins.world')
+                 os.path.join(pkg_share, 'worlds', 'empty_bins.world')
 
     num_objects = int(LaunchConfiguration('num_objects').perform(context))
     spawn_height_min = float(LaunchConfiguration('spawn_height_min').perform(context))
@@ -43,26 +41,26 @@ def launch_setup(context: LaunchContext, *args, **kwargs) -> list:
     spawn_center_x = float(LaunchConfiguration('spawn_center_x').perform(context))
     spawn_center_y = float(LaunchConfiguration('spawn_center_y').perform(context))
     spawn_radius = float(LaunchConfiguration('spawn_radius').perform(context))
+    only_mustard_bottle = LaunchConfiguration('only_mustard_bottle').perform(context).lower() in ("true", "1", "yes")
+    seed = int(LaunchConfiguration('seed').perform(context))
 
     actions = []
 
-    # Launch Gazebo world
-    gz_gui = LaunchConfiguration('gazebo_gui')
+    # ---------------------------
+    # Include Gazebo launch file
+    # ---------------------------
+    gazebo_launch_file = os.path.join(pkg_share, 'launch', 'gazebo.launch.py')  # adjust path
+    gazebo_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(gazebo_launch_file),
+        launch_arguments={
+            'world_file': world_file,
+        }.items()
+    )
+    actions.append(gazebo_launch)
 
-    # Start Gazebo Sim server (headless)
-    actions.append(ExecuteProcess(
-        cmd=["gz", "sim", "-r", "-s", world_file],
-        output="screen"
-    ))
-
-    # Start Gazebo Sim GUI, only if gazebo_gui is true
-    actions.append(ExecuteProcess(
-        condition=IfCondition(LaunchConfiguration("gazebo_gui")),
-        cmd=["gz", "sim", "-g"],
-        output="screen"
-    ))
-
+    # ---------------------------
     # Discover available models
+    # ---------------------------
     model_dir = "/home/ubuntu/manipulation/gazebo_models/ycb"
     available_models = []
     for d in sorted(os.listdir(model_dir)):
@@ -79,37 +77,71 @@ def launch_setup(context: LaunchContext, *args, **kwargs) -> list:
     if not available_models:
         raise RuntimeError(f"No usable models (with SDF) found in {model_dir}")
 
+    # ---------------------------
     # Spawn objects
-    random.seed(int(LaunchConfiguration('seed').perform(context)))
-    for i in range(num_objects):
-        folder_name, sdf_path = random.choice(available_models)
-        print(f"Spawning object {i+1}/{num_objects}: {folder_name}")
-
-        x = spawn_center_x + random.uniform(-spawn_radius, spawn_radius)
-        y = spawn_center_y + random.uniform(-spawn_radius, spawn_radius)
-        z = spawn_height_min + i * spawn_height_diff
-
+    # ---------------------------
+    if only_mustard_bottle:
+        # Only spawn 006_mustard_bottle
+        sdf_path = os.path.join(model_dir, '006_mustard_bottle', 'mustard_bottle.sdf')
         actions.append(
             Node(
                 package='ros_gz_sim',
                 executable='create',
                 arguments=[
                     '-file', sdf_path,
-                    '-name', f'obj_{i}',
-                    '-x', str(x),
-                    '-y', str(y),
-                    '-z', str(z)
+                    '-name', 'obj_0',
+                    '-x', str(spawn_center_x),
+                    '-y', str(spawn_center_y),
+                    '-z', str(spawn_height_min)
                 ],
                 output='screen'
             )
         )
+    else:
+        # Spawn random objects
+        random.seed(seed)
+        for i in range(num_objects):
+            folder_name, sdf_path = random.choice(available_models)
+            x = spawn_center_x + random.uniform(-spawn_radius, spawn_radius)
+            y = spawn_center_y + random.uniform(-spawn_radius, spawn_radius)
+            z = spawn_height_min + i * spawn_height_diff
+            actions.append(
+                Node(
+                    package='ros_gz_sim',
+                    executable='create',
+                    arguments=[
+                        '-file', sdf_path,
+                        '-name', f'obj_{i}',
+                        '-x', str(x),
+                        '-y', str(y),
+                        '-z', str(z)
+                    ],
+                    output='screen'
+                )
+            )
 
+    # ---------------------------
     # Gazebo ↔ ROS bridge
+    # ---------------------------
     bridge_config = os.path.join(pkg_share, 'config', 'camera_bridge.yaml')
     actions.append(RosGzBridge(
         bridge_name='gz_bridge',
         config_file=bridge_config,
         log_level='info',
     ))
+
+    # ---------------------------
+    # Include UR launch file
+    # ---------------------------
+    ur_launch_file = os.path.join(
+        FindPackageShare('ur_with_2f_85_description').find('ur_with_2f_85_description'),
+        'launch',
+        'ur_sim_control.launch.py'
+    )
+    ur_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(ur_launch_file),
+        launch_arguments={'world_file': world_file}.items()
+    )
+    actions.append(ur_launch)
 
     return actions
