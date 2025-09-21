@@ -30,11 +30,89 @@
 
 # Note(Vince Reda): Copied and removed gazebo and rviz related stuff
 
+import os
+
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.actions import IncludeLaunchDescription
+from launch.conditions import UnlessCondition
+
+from moveit_configs_utils import MoveItConfigsBuilder
+from launch_ros.parameter_descriptions import ParameterValue
+from moveit_configs_utils.launches import DeclareBooleanLaunchArg, add_debuggable_node
+
+
+def generate_move_group_launch(moveit_config, extra_move_group_params={}):
+    ld = LaunchDescription()
+
+    ld.add_action(DeclareBooleanLaunchArg("debug", default_value=False))
+    ld.add_action(
+        DeclareBooleanLaunchArg("allow_trajectory_execution", default_value=True)
+    )
+    ld.add_action(
+        DeclareBooleanLaunchArg("publish_monitored_planning_scene", default_value=True)
+    )
+    # load non-default MoveGroup capabilities (space separated)
+    ld.add_action(
+        DeclareLaunchArgument(
+            "capabilities",
+            default_value=moveit_config.move_group_capabilities["capabilities"],
+        )
+    )
+    # inhibit these default MoveGroup capabilities (space separated)
+    ld.add_action(
+        DeclareLaunchArgument(
+            "disable_capabilities",
+            default_value=moveit_config.move_group_capabilities["disable_capabilities"],
+        )
+    )
+
+    # do not copy dynamics information from /joint_states to internal robot monitoring
+    # default to false, because almost nothing in move_group relies on this information
+    ld.add_action(DeclareBooleanLaunchArg("monitor_dynamics", default_value=False))
+
+    should_publish = LaunchConfiguration("publish_monitored_planning_scene")
+
+    move_group_configuration = {
+        "publish_robot_description_semantic": True,
+        "allow_trajectory_execution": LaunchConfiguration("allow_trajectory_execution"),
+        # Note: Wrapping the following values is necessary so that the parameter value can be the empty string
+        "capabilities": ParameterValue(
+            LaunchConfiguration("capabilities"), value_type=str
+        ),
+        "disable_capabilities": ParameterValue(
+            LaunchConfiguration("disable_capabilities"), value_type=str
+        ),
+        # Publish the planning scene of the physical robot so that rviz plugin can know actual robot
+        "publish_planning_scene": should_publish,
+        "publish_geometry_updates": should_publish,
+        "publish_state_updates": should_publish,
+        "publish_transforms_updates": should_publish,
+        "monitor_dynamics": False,
+    }
+
+    move_group_params = [
+        moveit_config.to_dict(),
+        move_group_configuration,
+        extra_move_group_params,
+    ]
+
+    add_debuggable_node(
+        ld,
+        package="moveit_ros_move_group",
+        executable="move_group",
+        commands_file=str(moveit_config.package_path / "launch" / "gdb_settings.gdb"),
+        output="screen",
+        parameters=move_group_params,
+        extra_debug_args=["--debug"],
+        # Set the display variable, in case OpenGL code is used internally
+        additional_env={"DISPLAY": os.environ.get("DISPLAY", "")},
+    )
+    return ld
 
 
 def launch_setup(context, *args, **kwargs):
@@ -48,6 +126,7 @@ def launch_setup(context, *args, **kwargs):
     activate_joint_controller = LaunchConfiguration("activate_joint_controller")
     initial_joint_controller = LaunchConfiguration("initial_joint_controller")
     description_file = LaunchConfiguration("description_file")
+    ur_parent_frame = LaunchConfiguration("ur_parent_frame")
 
     # Robot description
     robot_description_content = Command(
@@ -76,6 +155,9 @@ def launch_setup(context, *args, **kwargs):
             " ",
             "simulation_controllers:=",
             controllers_file,
+            " ",
+            "parent:=",
+            ur_parent_frame,
         ]
     )
     robot_description = {"robot_description": robot_description_content}
@@ -114,6 +196,7 @@ def launch_setup(context, *args, **kwargs):
         package="controller_manager",
         executable="spawner",
         arguments=["joint_state_broadcaster", "--controller-manager", "/controller_manager"],
+        parameters=[{"use_sim_time": True}],
     )
 
     initial_joint_controller_spawner_args = [initial_joint_controller, "-c", "/controller_manager"]
@@ -132,12 +215,20 @@ def launch_setup(context, *args, **kwargs):
         arguments=["robotiq_gripper_controller", "-c", "/controller_manager"],
     )
 
+    moveit_config = MoveItConfigsBuilder(
+        "ur_with_2f_85", package_name="ur_with_2f_85_config"
+    ).to_moveit_configs()
+    move_group = generate_move_group_launch(
+        moveit_config,
+        extra_move_group_params={"use_sim_time": True})
+
     nodes_to_start = [
         robot_state_publisher_node,
         gazebo_spawner,
         joint_state_broadcaster_spawner,
         initial_joint_controller_spawner_started,
         robotiq_gripper_controller_spawner,
+        move_group,
     ]
 
     return nodes_to_start
@@ -226,6 +317,13 @@ def generate_launch_description():
                 FindPackageShare('ur_with_2f_85_description'), 'urdf', 'ur_with_2f_85.urdf.xacro']
             ),
             description="URDF/XACRO description file (absolute path) with the robot.",
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "ur_parent_frame",
+            default_value="world",
+            description="Name of the frame to which the robot is attached.",
         )
     )
 

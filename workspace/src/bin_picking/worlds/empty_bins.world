@@ -60,6 +60,11 @@
         </constraints>
       </ode>
     </physics>
+    <!-- <physics type="bullet"> -->
+    <!--   <gravity>0 0 -9.8</gravity> -->
+    <!--   <real_time_update_rate>500</real_time_update_rate> -->
+    <!--   <max_step_size>0.002</max_step_size> -->
+    <!-- </physics> -->
 
     <include>
       <uri>model://ground_plane</uri>

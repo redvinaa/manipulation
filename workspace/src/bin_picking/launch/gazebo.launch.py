@@ -64,17 +64,7 @@ def generate_launch_description():
             launch_arguments={"gz_args": gz_args}.items(),
         )
 
-        # Bridge /clock topic
-        gz_sim_bridge = Node(
-            package="ros_gz_bridge",
-            executable="parameter_bridge",
-            arguments=[
-                "/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock",
-            ],
-            output="screen",
-        )
-
-        return [gz_launch_description, gz_sim_bridge]
+        return [gz_launch_description]
 
     return LaunchDescription(
         [

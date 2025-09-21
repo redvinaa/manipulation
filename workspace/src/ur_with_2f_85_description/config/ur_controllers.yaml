@@ -24,9 +24,9 @@ controller_manager:
       type: position_controllers/JointGroupPositionController
 
     robotiq_gripper_controller:
-      # type: position_controllers/GripperActionController
+      type: position_controllers/GripperActionController
       # type: parallel_gripper_controllers/GripperActionController
-      type: parallel_gripper_action_controller/GripperActionController
+      # type: parallel_gripper_action_controller/GripperActionController
 
     robotiq_activation_controller:
       type: robotiq_controllers/RobotiqActivationController
@@ -122,6 +122,6 @@ robotiq_gripper_controller:
     use_effort_interface: true
     use_speed_interface: true
 
-robotiq_activation_controller:
-  ros__parameters:
-    default: true
+# robotiq_activation_controller:
+#   ros__parameters:
+#     default: true

@@ -15,16 +15,23 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 
+#include <moveit/move_group_interface/move_group_interface.hpp>
+#include <moveit/planning_scene_monitor/planning_scene_monitor.hpp>
+#include <moveit/planning_scene_interface/planning_scene_interface.hpp>
+#include <moveit/collision_detection/collision_common.hpp>
+#include <geometric_shapes/shapes.h>
+#include <geometric_shapes/shape_operations.h>
+#include <moveit/robot_model_loader/robot_model_loader.hpp>
 #include <rviz_visual_tools/rviz_visual_tools.hpp>
 
 
 namespace bin_picking
 {
 
-class FindGraspPose : public rclcpp::Node
+class FindGraspPose
 {
 public:
-  explicit FindGraspPose(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
+  explicit FindGraspPose(const rclcpp::Node::SharedPtr & node);
 
 private:
   // Parameters
@@ -34,6 +41,9 @@ private:
   float min_x_, max_x_, min_y_, max_y_, min_z_, max_z_;
 
   // Interfaces
+  rclcpp::Node::SharedPtr node_;
+  moveit::planning_interface::MoveGroupInterfacePtr move_group_arm_;
+  moveit::planning_interface::MoveGroupInterfacePtr move_group_gripper_;
   std::vector<rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr> subscriptions_;
 
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
@@ -42,10 +52,12 @@ private:
   // Storage for processed clouds
   std::map<std::string, pcl::PointCloud<pcl::PointNormal>::Ptr> clouds_with_normals_;
 
+  // Planning scene
+  planning_scene_monitor::PlanningSceneMonitorPtr planning_scene_monitor_;
+  // moveit::planning_interface::PlanningSceneInterface planning_scene_interface_;
+
   // Visualization
   std::shared_ptr<rviz_visual_tools::RvizVisualTools> visual_tools_;
-  rclcpp::Node::SharedPtr vis_tools_node_;
-  std::thread vis_tools_thread_;
 
   // Subscriber callback
   void pointCloudCallback(
@@ -76,8 +88,9 @@ private:
     const std::vector<pcl::PointCloud<pcl::PointNormal>::ConstPtr> & clouds,
     const float voxel_size);
 
-  geometry_msgs::msg::Pose findGraspPose(
-    const pcl::PointCloud<pcl::PointNormal>::ConstPtr & cloud);
+  // TODO organize relevant code into this function
+  // geometry_msgs::msg::Pose findGraspPose(
+  //   const pcl::PointCloud<pcl::PointNormal>::ConstPtr & cloud);
 };
 
 }  // namespace bin_picking

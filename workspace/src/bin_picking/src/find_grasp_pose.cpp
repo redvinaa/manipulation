@@ -13,64 +13,110 @@
 namespace bin_picking
 {
 
-FindGraspPose::FindGraspPose(const rclcpp::NodeOptions & options)
-: Node("find_grasp_pose", options)
+FindGraspPose::FindGraspPose(const rclcpp::Node::SharedPtr & node)
+: node_(node)
 {
   // Declare parameter for pointcloud topics
-  declare_parameter<std::vector<std::string>>("pointcloud_topics", {});
-  pointcloud_topics_ = get_parameter("pointcloud_topics").as_string_array();
+  std::vector<std::string> default_topics;
+  node_->declare_parameter("pointcloud_topics", default_topics);
+  pointcloud_topics_ = node_->get_parameter("pointcloud_topics").as_string_array();
 
-  declare_parameter<std::string>("target_frame", "world");
-  target_frame_ = get_parameter("target_frame").as_string();
+  node_->declare_parameter<std::string>("target_frame", "world");
+  target_frame_ = node_->get_parameter("target_frame").as_string();
+
+  node_->declare_parameter<float>("voxel_size", 0.01f);
+  voxel_size_ = node_->get_parameter("voxel_size").as_double();
+
+  node_->declare_parameter<std::string>("robot_description", "");
+
+  node_->declare_parameter<float>("min_x", -std::numeric_limits<float>::max());
+  min_x_ = node_->get_parameter("min_x").as_double();
+  node_->declare_parameter<float>("max_x", std::numeric_limits<float>::max());
+  max_x_ = node_->get_parameter("max_x").as_double();
+  node_->declare_parameter<float>("min_y", -std::numeric_limits<float>::max());
+  min_y_ = node_->get_parameter("min_y").as_double();
+  node_->declare_parameter<float>("max_y", std::numeric_limits<float>::max());
+  max_y_ = node_->get_parameter("max_y").as_double();
+  node_->declare_parameter<float>("min_z", -std::numeric_limits<float>::max());
+  min_z_ = node_->get_parameter("min_z").as_double();
+  node_->declare_parameter<float>("max_z", std::numeric_limits<float>::max());
+  max_z_ = node_->get_parameter("max_z").as_double();
+
+  if (pointcloud_topics_.empty()) {
+    RCLCPP_WARN(node_->get_logger(), "No pointcloud topics configured!");
+  }
 
   /* Initialize visualization tools
    * (we need this trick to make remote control work,
    * because it needs a node that's already spinning here
    * in the constructor)
    */
-  vis_tools_node_ = std::make_shared<rclcpp::Node>(
-    "find_grasp_pose_visual_tools", options);
-  vis_tools_thread_ = std::thread([this]() {
-      rclcpp::spin(vis_tools_node_);
-    });
   visual_tools_ = std::make_shared<rviz_visual_tools::RvizVisualTools>(
-    target_frame_, "/rviz_visual_tools", vis_tools_node_);
+    target_frame_, "/rviz_visual_tools", node_);
   visual_tools_->loadRemoteControl();
+  visual_tools_->deleteAllMarkers();
 
-  declare_parameter<float>("voxel_size", 0.01f);
-  voxel_size_ = get_parameter("voxel_size").as_double();
+  // Move group
+  move_group_arm_ = std::make_shared<moveit::planning_interface::MoveGroupInterface>(
+    node_, "ur_arm");
 
-  declare_parameter<float>("min_x", -std::numeric_limits<float>::max());
-  min_x_ = get_parameter("min_x").as_double();
-  declare_parameter<float>("max_x", std::numeric_limits<float>::max());
-  max_x_ = get_parameter("max_x").as_double();
-  declare_parameter<float>("min_y", -std::numeric_limits<float>::max());
-  min_y_ = get_parameter("min_y").as_double();
-  declare_parameter<float>("max_y", std::numeric_limits<float>::max());
-  max_y_ = get_parameter("max_y").as_double();
-  declare_parameter<float>("min_z", -std::numeric_limits<float>::max());
-  min_z_ = get_parameter("min_z").as_double();
-  declare_parameter<float>("max_z", std::numeric_limits<float>::max());
-  max_z_ = get_parameter("max_z").as_double();
+  // Load gripper urdf from file
+  // robot_model_loader::RobotModelLoaderPtr robot_model_loader = (vis_tools_node_, "robot_description");
+  // robot_model_loader::RobotModelLoaderPtr robot_model_loader =
+  //   std::make_shared<robot_model_loader::RobotModelLoader>(
+  //     node_, "robot_description");  // this creates a new node WITH THE SAME NAME
 
-  if (pointcloud_topics_.empty()) {
-    RCLCPP_WARN(get_logger(), "No pointcloud topics configured!");
-  }
+  // // Create a PlanningScene
+  // auto planning_scene = std::make_shared<planning_scene::PlanningScene>(
+  //   robot_model_loader->getModel());
 
-  // Create a subscriber for each topic
-  for (const auto & topic : pointcloud_topics_) {
-    auto sub = create_subscription<sensor_msgs::msg::PointCloud2>(
-      topic,
-      rclcpp::SensorDataQoS(),
-      [this, topic](sensor_msgs::msg::PointCloud2::ConstSharedPtr msg) {
-        pointCloudCallback(msg, topic);
-      });
-    subscriptions_.push_back(sub);
-    RCLCPP_INFO(get_logger(), "Subscribed to %s", topic.c_str());
-  }
+  // planning_scene_monitor_ = std::make_shared<planning_scene_monitor::PlanningSceneMonitor>(
+  //   node_, robot_model_loader);  // this creates a new node with private suffix
+  // planning_scene_monitor_->startSceneMonitor();
+  // planning_scene_monitor_->startWorldGeometryMonitor();
+  // planning_scene_monitor_->startStateMonitor();
+  // RCLCPP_ERROR(node_->get_logger(), "Planning scene and robot state initialized");
+  // // planning_scene_interface_ = moveit::planning_interface::PlanningSceneInterface();
+
+
+  // planning_scene_monitor_->startPublishingPlanningScene(
+  //   planning_scene_monitor::PlanningSceneMonitor::UPDATE_SCENE);
+  // planning_scene_monitor_->setStateUpdateFrequency(1.0);
+
+  // assert(visual_tools_->publishMesh(
+  //   geometry_msgs::msg::Pose(),
+  //   // "file:///home/ubuntu/manipulation/fish.stl",
+  //   "file:///home/ubuntu/manipulation/robotiq_2f_85_collision.stl",
+  //   // "file:///home/ubuntu/manipulation/workspace/install/bin_picking/share/bin_picking/robotiq_2f_85_collision.stl",
+  //   // "package://bin_picking/robotiq_2f_85_collision.stl",
+  //   rviz_visual_tools::GREEN, 1e-3));
+  // RCLCPP_ERROR(get_logger(), "6");
+  // visual_tools_->trigger();
+
+  // rclcpp::sleep_for(std::chrono::seconds(4));
+
+  // visual_tools_->publishSphere(
+  //   Eigen::Vector3d(0.0, 0.0, 0.0),
+  //   rviz_visual_tools::Colors::RED,
+  //   rviz_visual_tools::Scales::MEDIUM);
+  // visual_tools_->trigger();
+
+
+
+  // // Create a subscriber for each topic
+  // for (const auto & topic : pointcloud_topics_) {
+  //   auto sub = create_subscription<sensor_msgs::msg::PointCloud2>(
+  //     topic,
+  //     rclcpp::SensorDataQoS(),
+  //     [this, topic](sensor_msgs::msg::PointCloud2::ConstSharedPtr msg) {
+  //       pointCloudCallback(msg, topic);
+  //     });
+  //   subscriptions_.push_back(sub);
+  //   RCLCPP_INFO(get_logger(), "Subscribed to %s", topic.c_str());
+  // }
 
   // Initialize TF2
-  tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
+  tf_buffer_ = std::make_shared<tf2_ros::Buffer>(node_->get_clock());
   tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 }
 
@@ -86,7 +132,7 @@ void FindGraspPose::pointCloudCallback(
   pcl::fromROSMsg(*msg, *cloud);
   timer_conv.stop();
 
-  RCLCPP_INFO(get_logger(), "==== Received cloud from %s with %zu points ====",
+  RCLCPP_INFO(node_->get_logger(), "==== Received cloud from %s with %zu points ====",
               topic_name.c_str(), cloud->size());
 
   MeasureExecutionTime timer_transform("transformPointCloud");
@@ -108,7 +154,7 @@ void FindGraspPose::pointCloudCallback(
     viewpoint.y = transform_stamped.transform.translation.y;
     viewpoint.z = transform_stamped.transform.translation.z;
   } catch (const tf2::TransformException& ex) {
-    RCLCPP_WARN(this->get_logger(), "Could not get camera_link position: %s", ex.what());
+    RCLCPP_WARN(node_->get_logger(), "Could not get camera_link position: %s", ex.what());
     viewpoint.x = viewpoint.y = viewpoint.z = 0.0;
   }
   auto with_normals = computeNormals(cloud, viewpoint);
@@ -118,7 +164,7 @@ void FindGraspPose::pointCloudCallback(
   clouds_with_normals_[topic_name] = with_normals;
 
   // Visualize (optional, here just show cloud size in console)
-  RCLCPP_INFO(get_logger(),
+  RCLCPP_INFO(node_->get_logger(),
               "Processed voxelized cloud from %s with %zu points",
               topic_name.c_str(), with_normals->size());
 
@@ -194,10 +240,12 @@ void FindGraspPose::pointCloudCallback(
     Eigen::Isometry3f T = Eigen::Isometry3f::Identity();
     T.translation() = p;
     T.linear() = R;
-    visual_tools_->publishAxisLabeled(T.cast<double>(), "Darboux Frame");
+    visual_tools_->publishAxisLabeled(T.cast<double>(), "Darboux_frame");
     visual_tools_->trigger();
 
     visual_tools_->prompt("Press 'next' in the RvizVisualToolsGui to continue");
+
+    // Linearly search for a valid grasp pose
   }
 }
 
@@ -212,7 +260,7 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr FindGraspPose::transformPointCloud(
           target_frame, cloud->header.frame_id,
           rclcpp::Time(cloud->header.stamp));
   } catch (const tf2::TransformException& ex) {
-      RCLCPP_WARN(this->get_logger(), "Could not transform point cloud: %s", ex.what());
+      RCLCPP_WARN(node_->get_logger(), "Could not transform point cloud: %s", ex.what());
       return nullptr;
   }
 
@@ -317,7 +365,7 @@ pcl::PointCloud<pcl::PointNormal>::Ptr FindGraspPose::mergeClouds(
     }
   }
 
-  RCLCPP_INFO(this->get_logger(), "Merged cloud contains %zu points before downsampling", merged->size());
+  RCLCPP_INFO(node_->get_logger(), "Merged cloud contains %zu points before downsampling", merged->size());
 
   // Apply VoxelGrid filter to downsample
   pcl::VoxelGrid<pcl::PointNormal> voxel_filter;
@@ -328,7 +376,7 @@ pcl::PointCloud<pcl::PointNormal>::Ptr FindGraspPose::mergeClouds(
   voxel_filter.filter(*downsampled);
 
   RCLCPP_INFO(
-    this->get_logger(), "Downsampled cloud contains %zu points after voxel grid size %.3f",
+    node_->get_logger(), "Downsampled cloud contains %zu points after voxel grid size %.3f",
     downsampled->size(), voxel_size);
 
   return downsampled;
@@ -336,6 +384,13 @@ pcl::PointCloud<pcl::PointNormal>::Ptr FindGraspPose::mergeClouds(
 
 }  // namespace bin_picking
 
-#include <rclcpp_components/register_node_macro.hpp>
-using bin_picking::FindGraspPose;
-RCLCPP_COMPONENTS_REGISTER_NODE(FindGraspPose)
+
+int main(int argc, char ** argv)
+{
+  rclcpp::init(argc, argv);
+  auto node = std::make_shared<rclcpp::Node>("find_grasp_pose");
+  auto bin_picking = std::make_shared<bin_picking::FindGraspPose>(node);
+  rclcpp::spin(node);
+  rclcpp::shutdown();
+  return 0;
+}

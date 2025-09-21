@@ -54,6 +54,7 @@ def launch_setup(context: LaunchContext, *args, **kwargs) -> list:
         PythonLaunchDescriptionSource(gazebo_launch_file),
         launch_arguments={
             'world_file': world_file,
+            'gazebo_gui': 'False',
         }.items()
     )
     actions.append(gazebo_launch)
@@ -140,7 +141,9 @@ def launch_setup(context: LaunchContext, *args, **kwargs) -> list:
     )
     ur_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(ur_launch_file),
-        launch_arguments={'world_file': world_file}.items()
+        launch_arguments={
+            'world_file': world_file,
+            "ur_fixed_frame": "world"}.items()
     )
     actions.append(ur_launch)
 

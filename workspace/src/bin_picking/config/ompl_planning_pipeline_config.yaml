@@ -1,0 +1,6 @@
+planning_pipelines:
+  ompl:
+    planner_plugins: ["ompl_interface/OMPLPlanner"]
+    default_planner_configuration: "RRTConnect"
+default_planning_pipeline: "ompl"
+# TODO invalid
