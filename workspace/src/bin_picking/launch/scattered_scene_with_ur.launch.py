@@ -128,6 +128,11 @@ def launch_setup(context: LaunchContext, *args, **kwargs) -> list:
     actions.append(RosGzBridge(
         bridge_name='gz_bridge',
         config_file=bridge_config,
+        bridge_params=(
+            "'qos_overrides./bin1/left/camera/points.publisher."
+            "reliability': 'best_effort', "
+            "'qos_overrides./bin1/right/camera/points.publisher."
+            "reliability': 'best_effort'"),
         log_level='info',
     ))
 
