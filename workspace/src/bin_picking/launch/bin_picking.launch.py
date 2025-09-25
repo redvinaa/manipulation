@@ -2,19 +2,16 @@ import os
 
 from launch import LaunchDescription
 from launch.actions import IncludeLaunchDescription
-from launch_ros.actions import Node, ComposableNodeContainer, LoadComposableNodes
+from launch_ros.actions import Node
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.substitutions import FindPackageShare
-from launch_ros.descriptions import ComposableNode
-from launch_ros.parameter_descriptions import ParameterValue
-from ament_index_python.packages import get_package_share_directory
-from launch.substitutions import Command
-
+from launch.substitutions import PathJoinSubstitution
+from launch.actions import OpaqueFunction
 from moveit_configs_utils import MoveItConfigsBuilder
 
 
 
-def generate_launch_description() -> LaunchDescription:
+def launch_setup(context, *args, **kwargs):
     pkg_share = FindPackageShare(package='bin_picking').find('bin_picking')
 
     actions = []
@@ -42,23 +39,6 @@ def generate_launch_description() -> LaunchDescription:
                    '--frame-id', 'world', '--child-frame-id', 'bin1_cam_right']
     ))
 
-    # PCL CropBox filters for each depth camera
-    def create_crop_box_node(camera_name: str, parameters: dict) -> ComposableNode:
-        parameters.update({
-            'use_sim_time': True,
-            'input_frame': 'world',
-            'output_frame': 'world'})
-        return ComposableNode(
-            package="pcl_ros",
-            plugin="pcl_ros::CropBox",
-            name=f"{camera_name.replace('/', '_')}_crop_box",
-            remappings=[
-                ("input", f"/{camera_name}/camera/points"),
-                ("output", f"/{camera_name}/camera/points_cropped")
-            ],
-            parameters=[parameters],
-        )
-
     bin1_x = 0.5
     bin1_y = 0.0
     bin2_x = 0.0
@@ -68,9 +48,14 @@ def generate_launch_description() -> LaunchDescription:
     wall_cutoff = 0.02  # To avoid including bin walls in the point cloud
 
 
-    # MoveIt configuration
+    sensors_yaml = PathJoinSubstitution([
+        FindPackageShare("ur_with_2f_85_config"), "config", "sensors_3d.yaml"
+    ]).perform(context)
+
     moveit_config = MoveItConfigsBuilder(
-        "ur_with_2f_85", package_name="ur_with_2f_85_config").to_moveit_configs()
+        "ur_with_2f_85", package_name="ur_with_2f_85_config").sensors_3d(
+            file_path=sensors_yaml
+        ).to_moveit_configs()
 
     actions.append(Node(
         package="bin_picking",
@@ -81,10 +66,11 @@ def generate_launch_description() -> LaunchDescription:
             moveit_config.robot_description,
             moveit_config.robot_description_semantic,
             moveit_config.robot_description_kinematics,
+            moveit_config.sensors_3d,
             {
                 'pointcloud_topics': [
-                    '/bin1_cam_left/camera/points_cropped',
-                    '/bin1_cam_right/camera/points_cropped',
+                    '/bin1/left/camera/points',
+                    '/bin1/right/camera/points',
                 ],
                 'voxel_size': 0.01,
                 'publish_cropped_clouds': True,
@@ -98,6 +84,23 @@ def generate_launch_description() -> LaunchDescription:
             }
         ],
     ))
+
+    #  # PCL CropBox filters for each depth camera
+    #  def create_crop_box_node(camera_name: str, parameters: dict) -> ComposableNode:
+    #      parameters.update({
+    #          'use_sim_time': True,
+    #          'input_frame': 'world',
+    #          'output_frame': 'world'})
+    #      return ComposableNode(
+    #          package="pcl_ros",
+    #          plugin="pcl_ros::CropBox",
+    #          name=f"{camera_name.replace('/', '_')}_crop_box",
+    #          remappings=[
+    #              ("input", f"/{camera_name}/camera/points"),
+    #              ("output", f"/{camera_name}/camera/points_cropped")
+    #          ],
+    #          parameters=[parameters],
+    #      )
 
     #  actions.append(ComposableNodeContainer(
     #      name='bin_picking_container',
@@ -148,18 +151,8 @@ def generate_launch_description() -> LaunchDescription:
     #      output='screen',
     #  ))
 
-    #  actions.append(Node(
-    #      package="moveit_ros_move_group",
-    #      executable="move_group",
-    #      output="screen",
-    #      parameters=[
-    #          {"robot_description": robot_description},
-    #          {"robot_description_semantic": robot_description_semantic},
-    #          #  os.path.join(pkg_share, "config", "ompl_planning_pipeline_config.yaml"),
-    #          {"use_sim_time": True},
-    #      ],
-    #  ))
+    return actions
 
 
-
-    return LaunchDescription(actions)
+def generate_launch_description() -> LaunchDescription:
+    return LaunchDescription([OpaqueFunction(function=launch_setup)])

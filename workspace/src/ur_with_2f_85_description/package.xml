@@ -3,7 +3,7 @@
 <package format="3">
   <name>ur_with_2f_85_description</name>
   <version>0.0.1</version>
-  <description>Launch UR with 2F-85 gripper simulation</description>
+  <description>URDF of UR with 2F-85 gripper</description>
   <author>Vince Reda</author>
   <maintainer email="redvinaa@gmail.com">Vince Reda</maintainer>
   <license>BSD 3-Clause</license>

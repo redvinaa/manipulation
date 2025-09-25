@@ -113,10 +113,10 @@
     <xacro:add_finger_tip_frame side="right"/>
 
     <!-- Add gripper frame -->
-    <link name="gripper_link"/>
+    <link name="grasp_link"/>
     <joint name="gripper_joint" type="fixed">
         <parent link="wrist_3_link"/>
-        <child link="gripper_link"/>
+        <child link="grasp_link"/>
         <origin xyz="0 0 0.14" rpy="0 0 0"/>
     </joint>
 </robot>

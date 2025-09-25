@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <thread>
 
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/point_cloud2.hpp"
@@ -17,8 +18,14 @@
 
 #include <moveit/move_group_interface/move_group_interface.hpp>
 #include <moveit/planning_scene_monitor/planning_scene_monitor.hpp>
-#include <moveit/planning_scene_interface/planning_scene_interface.hpp>
 #include <moveit/collision_detection/collision_common.hpp>
+#include <moveit/robot_state/robot_state.hpp>
+#include <moveit/robot_model_loader/robot_model_loader.hpp>
+#include <moveit/robot_state/robot_state.hpp>
+#include <geometry_msgs/msg/pose.hpp>
+#include <tf2/LinearMath/Transform.hpp>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#include <tf2_eigen/tf2_eigen.hpp>
 #include <geometric_shapes/shapes.h>
 #include <geometric_shapes/shape_operations.h>
 #include <moveit/robot_model_loader/robot_model_loader.hpp>
@@ -31,7 +38,10 @@ namespace bin_picking
 class FindGraspPose
 {
 public:
-  explicit FindGraspPose(const rclcpp::Node::SharedPtr & node);
+  explicit FindGraspPose();
+
+  /// Wait for spin thread to finish
+  void run();
 
 private:
   // Parameters
@@ -40,10 +50,23 @@ private:
   float voxel_size_;
   float min_x_, max_x_, min_y_, max_y_, min_z_, max_z_;
 
-  // Interfaces
+  // Nodes
   rclcpp::Node::SharedPtr node_;
+  rclcpp::executors::SingleThreadedExecutor executor_;
+  std::thread spin_thread_;
+
+  // We need a separate node for MoveGroupInterface, because otherwise getCurrentState()
+  // fails. I think it's because even though MGI creates its own callback group and
+  // spins it, in getCurrentState it calls CurrentStateMonitor, which uses
+  // the node passed to MGI, and doesn't create its own callback group.
+  rclcpp::Node::SharedPtr mgi_node_;
+  rclcpp::executors::SingleThreadedExecutor mgi_executor_;
+  std::thread mgi_spin_thread_;
+
+  // Interfaces
   moveit::planning_interface::MoveGroupInterfacePtr move_group_arm_;
   moveit::planning_interface::MoveGroupInterfacePtr move_group_gripper_;
+  std::shared_ptr<planning_scene_monitor::PlanningSceneMonitor> psm_;
   std::vector<rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr> subscriptions_;
 
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
@@ -87,6 +110,17 @@ private:
   pcl::PointCloud<pcl::PointNormal>::Ptr mergeClouds(
     const std::vector<pcl::PointCloud<pcl::PointNormal>::ConstPtr> & clouds,
     const float voxel_size);
+
+  // Checks if the gripper at a given pose is in collision
+  bool checkCollision(const Eigen::Isometry3d & grasp_pose, double gripper_joint = 0.0);
+
+  /** @brief Visualize the gripper at a given pose
+   *
+   * @return IDs of the created markers
+   */
+  std::vector<int> visualizeGripper(
+    const Eigen::Isometry3d & pose, double gripper_joint,
+    rviz_visual_tools::Colors color = rviz_visual_tools::BLUE);
 
   // TODO organize relevant code into this function
   // geometry_msgs::msg::Pose findGraspPose(

@@ -1,5 +1,10 @@
+#include <thread>
+
 #include "bin_picking/find_grasp_pose.hpp"
 #include "bin_picking/utils.hpp"
+
+#include <rclcpp/executors.hpp>
+#include <rclcpp/callback_group.hpp>
 
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/filters/voxel_grid.h>
@@ -9,13 +14,26 @@
 #include <pcl/common/transforms.h>
 #include <pcl/common/io.h>  // for concatenatePointCloud
 
+#include <geometric_shapes/shapes.h>
+#include <geometric_shapes/mesh_operations.h>
+
 
 namespace bin_picking
 {
 
-FindGraspPose::FindGraspPose(const rclcpp::Node::SharedPtr & node)
-: node_(node)
+using namespace std::chrono_literals;
+
+FindGraspPose::FindGraspPose()
 {
+  // Create ROS2 node
+  node_ = rclcpp::Node::make_shared("find_grasp_pose");
+  executor_.add_node(node_);
+  spin_thread_ = std::thread([this]() { executor_.spin(); });
+
+  mgi_node_ = rclcpp::Node::make_shared("find_grasp_pose_mgi");
+  mgi_executor_.add_node(mgi_node_);
+  mgi_spin_thread_ = std::thread([this]() { mgi_executor_.spin(); });
+
   // Declare parameter for pointcloud topics
   std::vector<std::string> default_topics;
   node_->declare_parameter("pointcloud_topics", default_topics);
@@ -58,66 +76,75 @@ FindGraspPose::FindGraspPose(const rclcpp::Node::SharedPtr & node)
 
   // Move group
   move_group_arm_ = std::make_shared<moveit::planning_interface::MoveGroupInterface>(
-    node_, "ur_arm");
+    mgi_node_, "ur_arm");
+  move_group_gripper_ = std::make_shared<moveit::planning_interface::MoveGroupInterface>(
+    mgi_node_, "gripper");
 
-  // Load gripper urdf from file
-  // robot_model_loader::RobotModelLoaderPtr robot_model_loader = (vis_tools_node_, "robot_description");
-  // robot_model_loader::RobotModelLoaderPtr robot_model_loader =
-  //   std::make_shared<robot_model_loader::RobotModelLoader>(
-  //     node_, "robot_description");  // this creates a new node WITH THE SAME NAME
+  // Initialize PlanningSceneMonitor
+  psm_ = std::make_shared<planning_scene_monitor::PlanningSceneMonitor>(
+    node_, "robot_description");
+  psm_->startSceneMonitor();           // subscribes to /planning_scene
+  // psm_->startWorldGeometryMonitor();   // subscribes to /octomap_full etc.
+  psm_->startStateMonitor();           // keeps robot state updated
 
-  // // Create a PlanningScene
-  // auto planning_scene = std::make_shared<planning_scene::PlanningScene>(
-  //   robot_model_loader->getModel());
+  // // Test visualizeGripper
+  // Eigen::Isometry3d test_pose = Eigen::Isometry3d::Identity();
+  // test_pose.translation() = Eigen::Vector3d(0.0, 0.0, 0.0);
+  // double angle = 0;
 
-  // planning_scene_monitor_ = std::make_shared<planning_scene_monitor::PlanningSceneMonitor>(
-  //   node_, robot_model_loader);  // this creates a new node with private suffix
-  // planning_scene_monitor_->startSceneMonitor();
-  // planning_scene_monitor_->startWorldGeometryMonitor();
-  // planning_scene_monitor_->startStateMonitor();
-  // RCLCPP_ERROR(node_->get_logger(), "Planning scene and robot state initialized");
-  // // planning_scene_interface_ = moveit::planning_interface::PlanningSceneInterface();
-
-
-  // planning_scene_monitor_->startPublishingPlanningScene(
-  //   planning_scene_monitor::PlanningSceneMonitor::UPDATE_SCENE);
-  // planning_scene_monitor_->setStateUpdateFrequency(1.0);
-
-  // assert(visual_tools_->publishMesh(
-  //   geometry_msgs::msg::Pose(),
-  //   // "file:///home/ubuntu/manipulation/fish.stl",
-  //   "file:///home/ubuntu/manipulation/robotiq_2f_85_collision.stl",
-  //   // "file:///home/ubuntu/manipulation/workspace/install/bin_picking/share/bin_picking/robotiq_2f_85_collision.stl",
-  //   // "package://bin_picking/robotiq_2f_85_collision.stl",
-  //   rviz_visual_tools::GREEN, 1e-3));
-  // RCLCPP_ERROR(get_logger(), "6");
-  // visual_tools_->trigger();
-
-  // rclcpp::sleep_for(std::chrono::seconds(4));
-
-  // visual_tools_->publishSphere(
-  //   Eigen::Vector3d(0.0, 0.0, 0.0),
-  //   rviz_visual_tools::Colors::RED,
-  //   rviz_visual_tools::Scales::MEDIUM);
-  // visual_tools_->trigger();
-
-
-
-  // // Create a subscriber for each topic
-  // for (const auto & topic : pointcloud_topics_) {
-  //   auto sub = create_subscription<sensor_msgs::msg::PointCloud2>(
-  //     topic,
-  //     rclcpp::SensorDataQoS(),
-  //     [this, topic](sensor_msgs::msg::PointCloud2::ConstSharedPtr msg) {
-  //       pointCloudCallback(msg, topic);
-  //     });
-  //   subscriptions_.push_back(sub);
-  //   RCLCPP_INFO(get_logger(), "Subscribed to %s", topic.c_str());
+  // // Load the robot model
+  // static robot_model_loader::RobotModelLoader loader(node_, "robot_description");
+  // auto robot_model = loader.getModel();
+  // if (!robot_model) {
+  //     RCLCPP_ERROR(node_->get_logger(), "Failed to load robot model");
+  //     return;
   // }
+
+  // // Get robot state
+  // moveit::core::RobotState robot_state(robot_model);
+  // robot_state.setToDefaultValues();
+
+  // Eigen::Isometry3d pose = Eigen::Isometry3d::Identity();
+
+  // while (true) {
+  //   visual_tools_->deleteAllMarkers();
+
+  //   visualizeGripper(pose, 0.0);
+  //   // visualizeLinkRecursive(robot_state, robot_model->getLinkModel("wrist_3_link"), pose);
+  //   visual_tools_->trigger();
+
+  //   // visualizeGripper(test_pose, 0.0, rviz_visual_tools::BLUE);
+
+  //   std::this_thread::sleep_for(100ms);
+  //   angle += 0.1;
+  //   angle = std::fmod(angle, 2 * M_PI);
+  // }
+
+  // Create a subscriber for each topic
+  for (const auto & topic : pointcloud_topics_) {
+    auto sub = node_->create_subscription<sensor_msgs::msg::PointCloud2>(
+      topic,
+      rclcpp::SensorDataQoS(),
+      [this, topic](sensor_msgs::msg::PointCloud2::ConstSharedPtr msg) {
+        pointCloudCallback(msg, topic);
+      });
+    subscriptions_.push_back(sub);
+    RCLCPP_INFO(node_->get_logger(), "Subscribed to %s", topic.c_str());
+  }
 
   // Initialize TF2
   tf_buffer_ = std::make_shared<tf2_ros::Buffer>(node_->get_clock());
   tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
+}
+
+void FindGraspPose::run()
+{
+  if (spin_thread_.joinable()) {
+    spin_thread_.join();
+  }
+  if (mgi_spin_thread_.joinable()) {
+    mgi_spin_thread_.join();
+  }
 }
 
 void FindGraspPose::pointCloudCallback(
@@ -222,31 +249,173 @@ void FindGraspPose::pointCloudCallback(
      * z axis: minor axis of curvature (cross product of x and y)
      */
     const auto & pt = merged_cloud->points[idx];
-    Eigen::Vector3f p(pt.x, pt.y, pt.z);
+    Eigen::Vector3d p(pt.x, pt.y, pt.z);
 
     const auto & curvature = pcs->points[idx];
-    Eigen::Vector3f n(pt.normal_x, pt.normal_y, pt.normal_z);
+    Eigen::Vector3d n(pt.normal_x, pt.normal_y, pt.normal_z);
     n = -n / n.norm(); // Unit normal pointing inwards
-    Eigen::Vector3f d1(curvature.principal_curvature_x, curvature.principal_curvature_y, curvature.principal_curvature_z);
+    Eigen::Vector3d d1(curvature.principal_curvature_x, curvature.principal_curvature_y, curvature.principal_curvature_z);
     d1.normalize();
 
-    Eigen::Vector3f d2 = d1.cross(n);
+    Eigen::Vector3d d2 = d1.cross(n);
     // d2.normalize();  // already unit length
-    Eigen::Matrix3f R;
+    Eigen::Matrix3d R;
     R.col(0) = d1;
     R.col(1) = n;
     R.col(2) = d2;
 
-    Eigen::Isometry3f T = Eigen::Isometry3f::Identity();
+    Eigen::Isometry3d T = Eigen::Isometry3d::Identity();
     T.translation() = p;
     T.linear() = R;
     visual_tools_->publishAxisLabeled(T.cast<double>(), "Darboux_frame");
     visual_tools_->trigger();
 
+    // Distance offset along surface normal
+    const double distance_to_surface = 0.01;
+    Eigen::Vector3d p_grasp = p - distance_to_surface * n;
+
+    // Build Darboux frame
+    Eigen::Isometry3d T_grasp = Eigen::Isometry3d::Identity();
+    T_grasp.translation() = p_grasp;
+    T_grasp.linear() = R;
+
+    // ------------------------------------------------------------------
+    // Adjust: express T_grasp at gripper root (e.g. wrist_3_link) instead of grasp_link
+    // ------------------------------------------------------------------
+    static robot_model_loader::RobotModelLoader loader(node_, "robot_description");
+    auto robot_model = loader.getModel();
+    moveit::core::RobotStatePtr state_ptr = move_group_arm_->getCurrentState();
+    moveit::core::RobotState robot_state = *state_ptr;
+
+    // Define links
+    const std::string grasp_link = "grasp_link";
+    const std::string root_link  = "robotiq_85_base_link";
+
+    // Get transforms from robot_state (both in base frame)
+    Eigen::Isometry3d T_base_grasp = robot_state.getGlobalLinkTransform(grasp_link);
+    Eigen::Isometry3d T_base_root  = robot_state.getGlobalLinkTransform(root_link);
+
+    // Compute fixed transform root←grasp
+    Eigen::Isometry3d T_root_grasp = T_base_root.inverse() * T_base_grasp;
+
+    // Final pose: where the root link should be, given the Darboux frame at grasp_link
+    Eigen::Isometry3d T_root = T_grasp * T_root_grasp.inverse();
+
+    // ------------------------------------------------------------------
+    // Collision check now at root pose
+    // ------------------------------------------------------------------
+    const bool in_collision = checkCollision(T_root);
+    RCLCPP_INFO(node_->get_logger(), "Grasp pose is %s",
+                in_collision ? "in collision" : "collision-free");
+
+    // Visualize gripper at this pose
+    rviz_visual_tools::Colors color = in_collision ? rviz_visual_tools::RED : rviz_visual_tools::GREEN;
+    visualizeGripper(T_root, 0.0, color);
+
     visual_tools_->prompt("Press 'next' in the RvizVisualToolsGui to continue");
 
     // Linearly search for a valid grasp pose
+    // TODO
   }
+}
+
+std::vector<int> FindGraspPose::visualizeGripper(
+  const Eigen::Isometry3d & base_pose,
+  double gripper_joint_value,
+  rviz_visual_tools::Colors color)
+{
+  if (!visual_tools_ || !move_group_arm_) {
+    RCLCPP_WARN(node_->get_logger(), "Visual tools or move group not initialized.");
+    return {};
+  }
+
+  // Load robot model once (static)
+  // TODO create overload that accepts a RobotModelPtr
+  static robot_model_loader::RobotModelLoader loader(node_, "robot_description");
+  auto robot_model = loader.getModel();
+  if (!robot_model) {
+    RCLCPP_ERROR(node_->get_logger(), "Failed to load robot model");
+    return {};
+  }
+
+  // Get the gripper group's root link name
+  const std::string gripper_group_name = "gripper";
+  const auto * gripper_group = robot_model->getJointModelGroup(gripper_group_name);
+  if (!gripper_group) {
+    RCLCPP_ERROR(node_->get_logger(), "Could not find joint group '%s'", gripper_group_name.c_str());
+    return {};
+  }
+
+  // Get a fresh RobotState from MoveGroup (this has valid transforms)
+  moveit::core::RobotStatePtr current_state_ptr = move_group_arm_->getCurrentState();
+  if (!current_state_ptr) {
+    RCLCPP_ERROR(node_->get_logger(), "Failed to get current robot state from move_group_arm_");
+    return {};
+  }
+  // Copy to local state so we can modify without affecting MoveGroup internals
+  moveit::core::RobotState robot_state = *current_state_ptr;
+
+  // Set desired gripper joint value(s). Here we set only "gripper_joint".
+  // If you want to control multiple gripper joints, accept a map<string,double> instead.
+  const std::string gripper_joint_name = "robotiq_85_left_knuckle_joint";
+
+  // For single-DOF joint: TODO check joint type
+  robot_state.setJointPositions(gripper_joint_name, &gripper_joint_value);
+
+  // IMPORTANT: update transforms before querying them
+  robot_state.update();  // ensures checkLinkTransforms() will pass
+
+  std::vector<int> marker_ids;
+
+  // Compute transform from robot base to gripper root link
+  const std::string root_link = "robotiq_85_base_link";
+  const auto * root_link_model = robot_model->getLinkModel(root_link);
+  if (!root_link_model) {
+    RCLCPP_ERROR(node_->get_logger(), "Could not find link model for root link '%s'", root_link.c_str());
+    return {};
+  }
+
+  // Get current root link transform in the robot’s base frame
+  Eigen::Isometry3d T_base_root = robot_state.getGlobalLinkTransform(root_link);
+
+  // Compute offset so that "base_pose" becomes the new root
+  // i.e. we want: world_tf = base_pose * (T_base_root^-1 * T_base_link)
+  Eigen::Isometry3d T_root_base = T_base_root.inverse();
+
+  // recursive lambda to visualize link subtree (via child joints)
+  std::function<void(const moveit::core::LinkModel*)> visualizeLinkRecursive;
+  visualizeLinkRecursive = [&](const moveit::core::LinkModel * link_model)
+  {
+    if (!link_model) return;
+
+    const std::string link_name = link_model->getName();
+    const std::string & mesh_filename = link_model->getVisualMeshFilename();
+    const Eigen::Isometry3d & mesh_origin = link_model->getVisualMeshOrigin();
+
+    // Transform link w.r.t. root
+    Eigen::Isometry3d T_base_link = robot_state.getGlobalLinkTransform(link_name);
+    Eigen::Isometry3d T_root_link = T_root_base * T_base_link;
+
+    // Apply user-specified base pose
+    Eigen::Isometry3d world_tf = base_pose * T_root_link;
+
+    if (!mesh_filename.empty()) {
+      Eigen::Isometry3d final_tf = world_tf * mesh_origin;
+      visual_tools_->publishMesh(final_tf, mesh_filename, color);
+      int id = visual_tools_->getMeshId();
+      marker_ids.push_back(id);
+    }
+
+    for (const auto * child_joint : link_model->getChildJointModels()) {
+      if (!child_joint) continue;
+      visualizeLinkRecursive(child_joint->getChildLinkModel());
+    }
+  };
+
+  visualizeLinkRecursive(root_link_model);
+  visual_tools_->trigger();
+
+  return marker_ids;
 }
 
 pcl::PointCloud<pcl::PointXYZ>::Ptr FindGraspPose::transformPointCloud(
@@ -382,15 +551,75 @@ pcl::PointCloud<pcl::PointNormal>::Ptr FindGraspPose::mergeClouds(
   return downsampled;
 }
 
+bool FindGraspPose::checkCollision(
+  const Eigen::Isometry3d &grasp_pose, double gripper_joint)
+{
+  // --- Step 1: Transform grasp_link pose to gripper_link pose ---
+  // Example: grasp_link is at finger tips center, gripper_link is base of fingers
+  Eigen::Isometry3d offset = Eigen::Isometry3d::Identity();
+  offset.translation() = Eigen::Vector3d(0.0, 0.0, -0.14); // 5 cm back along Z
+
+  Eigen::Isometry3d gripper_pose = grasp_pose * offset.inverse();
+
+  // --- Step 2: Solve IK for arm ---
+  moveit::core::RobotStatePtr kinematic_state = move_group_arm_->getCurrentState();
+  if (!kinematic_state) {
+      std::cerr << "Current robot state not available yet!" << std::endl;
+      return true; // treat as collision / unreachable
+  } else {
+    RCLCPP_INFO(node_->get_logger(), "Current robot state available!");
+  }
+
+  const moveit::core::JointModelGroup* arm_jmg =
+    kinematic_state->getJointModelGroup(move_group_arm_->getName());
+
+  bool found_ik = kinematic_state->setFromIK(arm_jmg, gripper_pose);
+  if (!found_ik)
+  {
+    std::cout << "IK solution not found for given gripper pose." << std::endl;
+    return true; // consider "collision" if pose is unreachable
+  }
+
+  // --- Step 3: Set gripper joint(s) ---
+  std::vector<std::string> gripper_joints = move_group_gripper_->getJoints();
+  std::vector<double> gripper_values(gripper_joints.size(), gripper_joint);
+  kinematic_state->setJointGroupPositions(move_group_gripper_->getName(), gripper_values);
+
+  // --- Step 4: Check collision ---
+  planning_scene::PlanningScenePtr planning_scene = psm_->getPlanningScene();
+  if (!planning_scene)
+  {
+    std::cerr << "Planning scene not available!" << std::endl;
+    return true;
+  }
+
+  collision_detection::CollisionRequest collision_request;
+  collision_detection::CollisionResult collision_result;
+
+  planning_scene->checkCollision(collision_request, collision_result, *kinematic_state);
+
+  if (collision_result.collision)
+  {
+    std::cout << "Gripper is in collision." << std::endl;
+    return true;
+  }
+  else
+  {
+    std::cout << "Gripper is collision-free." << std::endl;
+    return false;
+  }
+}
+
 }  // namespace bin_picking
 
 
 int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);
-  auto node = std::make_shared<rclcpp::Node>("find_grasp_pose");
-  auto bin_picking = std::make_shared<bin_picking::FindGraspPose>(node);
-  rclcpp::spin(node);
+
+  auto bin_picking = std::make_shared<bin_picking::FindGraspPose>();
+  bin_picking->run();
+
   rclcpp::shutdown();
   return 0;
 }
