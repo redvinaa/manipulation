@@ -1,7 +1,7 @@
 import os
 
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription
+from launch.actions import IncludeLaunchDescription, ExecuteProcess
 from launch_ros.actions import Node
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.substitutions import FindPackageShare
@@ -15,6 +15,12 @@ def launch_setup(context, *args, **kwargs):
     pkg_share = FindPackageShare(package='bin_picking').find('bin_picking')
 
     actions = []
+
+    # Reset RViz time on startup in simulation
+    actions.append(ExecuteProcess(
+        cmd=['ros2', 'service', 'call', '/rviz/reset_time', 'std_srvs/srv/Empty', '{}'],
+        output='screen'
+    ))
 
     # Include scattered scene (Gazebo + objects)
     actions.append(IncludeLaunchDescription(
