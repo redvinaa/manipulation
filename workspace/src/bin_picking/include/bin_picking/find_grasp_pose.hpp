@@ -51,17 +51,14 @@ private:
   float min_x_, max_x_, min_y_, max_y_, min_z_, max_z_;
 
   // Nodes
-  rclcpp::Node::SharedPtr node_;
-  rclcpp::executors::SingleThreadedExecutor executor_;
+  /* We need a separate node for MoveGroupInterface, because otherwise getCurrentState()
+   * fails. I think it's because even though MGI creates its own callback group and
+   * spins it, in getCurrentState it calls CurrentStateMonitor, which uses
+   * the node passed to MGI, and doesn't create its own callback group.
+   */
+  rclcpp::Node::SharedPtr node_, mgi_node_, vis_node_;
+  rclcpp::executors::MultiThreadedExecutor executor_;
   std::thread spin_thread_;
-
-  // We need a separate node for MoveGroupInterface, because otherwise getCurrentState()
-  // fails. I think it's because even though MGI creates its own callback group and
-  // spins it, in getCurrentState it calls CurrentStateMonitor, which uses
-  // the node passed to MGI, and doesn't create its own callback group.
-  rclcpp::Node::SharedPtr mgi_node_;
-  rclcpp::executors::SingleThreadedExecutor mgi_executor_;
-  std::thread mgi_spin_thread_;
 
   // Interfaces
   moveit::planning_interface::MoveGroupInterfacePtr move_group_arm_;

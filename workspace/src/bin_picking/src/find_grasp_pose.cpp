@@ -27,12 +27,12 @@ FindGraspPose::FindGraspPose()
 {
   // Create ROS2 node
   node_ = rclcpp::Node::make_shared("find_grasp_pose");
-  executor_.add_node(node_);
-  spin_thread_ = std::thread([this]() { executor_.spin(); });
-
   mgi_node_ = rclcpp::Node::make_shared("find_grasp_pose_mgi");
-  mgi_executor_.add_node(mgi_node_);
-  mgi_spin_thread_ = std::thread([this]() { mgi_executor_.spin(); });
+  vis_node_ = rclcpp::Node::make_shared("find_grasp_pose_vis");
+  executor_.add_node(node_);
+  executor_.add_node(mgi_node_);
+  executor_.add_node(vis_node_);
+  spin_thread_ = std::thread([this]() { executor_.spin(); });
 
   // Declare parameter for pointcloud topics
   std::vector<std::string> default_topics;
@@ -70,7 +70,7 @@ FindGraspPose::FindGraspPose()
    * in the constructor)
    */
   visual_tools_ = std::make_shared<rviz_visual_tools::RvizVisualTools>(
-    target_frame_, "/rviz_visual_tools", node_);
+    target_frame_, "/rviz_visual_tools", vis_node_);
   visual_tools_->loadRemoteControl();
   visual_tools_->deleteAllMarkers();
 
@@ -141,9 +141,6 @@ void FindGraspPose::run()
 {
   if (spin_thread_.joinable()) {
     spin_thread_.join();
-  }
-  if (mgi_spin_thread_.joinable()) {
-    mgi_spin_thread_.join();
   }
 }
 
