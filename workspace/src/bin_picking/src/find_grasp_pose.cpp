@@ -83,37 +83,31 @@ FindGraspPose::FindGraspPose()
   // Initialize PlanningSceneMonitor
   psm_ = std::make_shared<planning_scene_monitor::PlanningSceneMonitor>(
     node_, "robot_description");
-  psm_->startSceneMonitor();           // subscribes to /planning_scene
-  // psm_->startWorldGeometryMonitor();   // subscribes to /octomap_full etc.
-  psm_->startStateMonitor();           // keeps robot state updated
+  psm_->startSceneMonitor("/monitored_planning_scene");
 
   // // Test visualizeGripper
-  // Eigen::Isometry3d test_pose = Eigen::Isometry3d::Identity();
-  // test_pose.translation() = Eigen::Vector3d(0.0, 0.0, 0.0);
+  // // Move in a sin wave between y = +-0.5
+  // const float d_angle = 2 * M_PI * 0.1 * 0.1; // 0.1 Hz
+  // const float amplitude = 0.3;
+  // Eigen::Isometry3d gripper_pose = Eigen::Isometry3d::Identity();
+  // gripper_pose.translation() = Eigen::Vector3d(0.5, 0.0, 0.25);  // fixed x and z
+  // gripper_pose.linear() = Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitX()).toRotationMatrix(); // point downwards
   // double angle = 0;
-
-  // // Load the robot model
-  // static robot_model_loader::RobotModelLoader loader(node_, "robot_description");
-  // auto robot_model = loader.getModel();
-  // if (!robot_model) {
-  //     RCLCPP_ERROR(node_->get_logger(), "Failed to load robot model");
-  //     return;
-  // }
-
-  // // Get robot state
-  // moveit::core::RobotState robot_state(robot_model);
-  // robot_state.setToDefaultValues();
-
-  // Eigen::Isometry3d pose = Eigen::Isometry3d::Identity();
 
   // while (true) {
   //   visual_tools_->deleteAllMarkers();
 
-  //   visualizeGripper(pose, 0.0);
-  //   // visualizeLinkRecursive(robot_state, robot_model->getLinkModel("wrist_3_link"), pose);
-  //   visual_tools_->trigger();
+  //   gripper_pose.translation().y() = amplitude * std::sin(angle);
 
-  //   // visualizeGripper(test_pose, 0.0, rviz_visual_tools::BLUE);
+  //   rviz_visual_tools::Colors color = rviz_visual_tools::BLUE;  // default for unfeasible poses
+
+  //   try {
+  //     const bool in_collision = checkCollision(gripper_pose);
+  //     color = in_collision ? rviz_visual_tools::RED : rviz_visual_tools::GREEN;
+  //   } catch (const std::runtime_error & e) {
+  //   }
+
+  //   visualizeGripper(gripper_pose, 0.0, color);
 
   //   std::this_thread::sleep_for(100ms);
   //   angle += 0.1;
@@ -301,12 +295,16 @@ void FindGraspPose::pointCloudCallback(
     // ------------------------------------------------------------------
     // Collision check now at root pose
     // ------------------------------------------------------------------
-    const bool in_collision = checkCollision(T_root);
-    RCLCPP_INFO(node_->get_logger(), "Grasp pose is %s",
-                in_collision ? "in collision" : "collision-free");
+    rviz_visual_tools::Colors color = rviz_visual_tools::BLUE;  // default for unfeasible poses
+    try {
+      const bool in_collision = checkCollision(T_root);
+      RCLCPP_INFO(node_->get_logger(), "Grasp pose is %s",
+                  in_collision ? "in collision" : "collision-free");
+      color = in_collision ? rviz_visual_tools::RED : rviz_visual_tools::GREEN;
+    } catch (const std::runtime_error & e) {
+      // RCLCPP_WARN(node_->get_logger(), "Collision check failed: %s", e.what());
+    }
 
-    // Visualize gripper at this pose
-    rviz_visual_tools::Colors color = in_collision ? rviz_visual_tools::RED : rviz_visual_tools::GREEN;
     visualizeGripper(T_root, 0.0, color);
 
     visual_tools_->prompt("Press 'next' in the RvizVisualToolsGui to continue");
@@ -549,32 +547,29 @@ pcl::PointCloud<pcl::PointNormal>::Ptr FindGraspPose::mergeClouds(
 }
 
 bool FindGraspPose::checkCollision(
-  const Eigen::Isometry3d &grasp_pose, double gripper_joint)
+  const Eigen::Isometry3d & gripper_base_pose, double gripper_joint)
 {
-  // --- Step 1: Transform grasp_link pose to gripper_link pose ---
-  // Example: grasp_link is at finger tips center, gripper_link is base of fingers
-  Eigen::Isometry3d offset = Eigen::Isometry3d::Identity();
-  offset.translation() = Eigen::Vector3d(0.0, 0.0, -0.14); // 5 cm back along Z
+  // // --- Step 1: Transform grasp_link pose to gripper_link pose ---
+  // // Example: grasp_link is at finger tips center, gripper_link is base of fingers
+  // Eigen::Isometry3d offset = Eigen::Isometry3d::Identity();
+  // offset.translation() = Eigen::Vector3d(0.0, 0.0, -0.14); // 5 cm back along Z
 
-  Eigen::Isometry3d gripper_pose = grasp_pose * offset.inverse();
+  // Eigen::Isometry3d gripper_pose = grasp_pose * offset.inverse();
+
+  Eigen::Isometry3d gripper_pose = gripper_base_pose;
 
   // --- Step 2: Solve IK for arm ---
   moveit::core::RobotStatePtr kinematic_state = move_group_arm_->getCurrentState();
   if (!kinematic_state) {
-      std::cerr << "Current robot state not available yet!" << std::endl;
-      return true; // treat as collision / unreachable
-  } else {
-    RCLCPP_INFO(node_->get_logger(), "Current robot state available!");
+    throw std::runtime_error("Current robot state not available.");
   }
 
   const moveit::core::JointModelGroup* arm_jmg =
     kinematic_state->getJointModelGroup(move_group_arm_->getName());
 
   bool found_ik = kinematic_state->setFromIK(arm_jmg, gripper_pose);
-  if (!found_ik)
-  {
-    std::cout << "IK solution not found for given gripper pose." << std::endl;
-    return true; // consider "collision" if pose is unreachable
+  if (!found_ik) {
+    throw std::runtime_error("IK solution not found for given gripper pose.");
   }
 
   // --- Step 3: Set gripper joint(s) ---
@@ -583,26 +578,22 @@ bool FindGraspPose::checkCollision(
   kinematic_state->setJointGroupPositions(move_group_gripper_->getName(), gripper_values);
 
   // --- Step 4: Check collision ---
-  planning_scene::PlanningScenePtr planning_scene = psm_->getPlanningScene();
-  if (!planning_scene)
-  {
-    std::cerr << "Planning scene not available!" << std::endl;
-    return true;
+  planning_scene_monitor::LockedPlanningSceneRO planning_scene(psm_);
+  if (!planning_scene) {
+    throw std::runtime_error("Planning scene not available.");
   }
 
   collision_detection::CollisionRequest collision_request;
+  collision_request.group_name = move_group_gripper_->getName(); // only check gripper
+  collision_request.verbose = true;
   collision_detection::CollisionResult collision_result;
 
   planning_scene->checkCollision(collision_request, collision_result, *kinematic_state);
 
-  if (collision_result.collision)
-  {
-    std::cout << "Gripper is in collision." << std::endl;
+  if (collision_result.collision) {
     return true;
   }
-  else
-  {
-    std::cout << "Gripper is collision-free." << std::endl;
+  else {
     return false;
   }
 }

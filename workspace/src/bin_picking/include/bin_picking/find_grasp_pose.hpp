@@ -109,14 +109,15 @@ private:
     const float voxel_size);
 
   // Checks if the gripper at a given pose is in collision
-  bool checkCollision(const Eigen::Isometry3d & grasp_pose, double gripper_joint = 0.0);
+  bool checkCollision(const Eigen::Isometry3d & gripper_base_pose, double gripper_joint = 0.0);
 
   /** @brief Visualize the gripper at a given pose
    *
+   * @param gripper_joint Gripper joint value (0.0 = open, 0.8 = closed)
    * @return IDs of the created markers
    */
   std::vector<int> visualizeGripper(
-    const Eigen::Isometry3d & pose, double gripper_joint,
+    const Eigen::Isometry3d & gripper_base_pose, double gripper_joint = 0.0,
     rviz_visual_tools::Colors color = rviz_visual_tools::BLUE);
 
   // TODO organize relevant code into this function
