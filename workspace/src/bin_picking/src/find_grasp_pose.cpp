@@ -8,14 +8,11 @@
 
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/filters/voxel_grid.h>
-#include <pcl/filters/crop_box.h>
 #include <pcl/features/normal_3d.h>
 #include <pcl/features/principal_curvatures.h>
-#include <pcl/common/transforms.h>
 #include <pcl/common/io.h>  // for concatenatePointCloud
 
-#include <geometric_shapes/shapes.h>
-#include <geometric_shapes/mesh_operations.h>
+#include <message_filters/sync_policies/approximate_time.h>
 
 
 namespace bin_picking
@@ -35,9 +32,14 @@ FindGraspPose::FindGraspPose()
   spin_thread_ = std::thread([this]() { executor_.spin(); });
 
   // Declare parameter for pointcloud topics
-  std::vector<std::string> default_topics;
-  node_->declare_parameter("pointcloud_topics", default_topics);
-  pointcloud_topics_ = node_->get_parameter("pointcloud_topics").as_string_array();
+  node_->declare_parameter("pointcloud_topic_left", "");
+  node_->declare_parameter("pointcloud_topic_right", "");
+  pointcloud_topic_left_ = node_->get_parameter("pointcloud_topic_left").as_string();
+  pointcloud_topic_right_ = node_->get_parameter("pointcloud_topic_right").as_string();
+  node_->declare_parameter("camera_frame_left", "");
+  node_->declare_parameter("camera_frame_right", "");
+  camera_frame_left_ = node_->get_parameter("camera_frame_left").as_string();
+  camera_frame_right_ = node_->get_parameter("camera_frame_right").as_string();
 
   node_->declare_parameter<std::string>("target_frame", "world");
   target_frame_ = node_->get_parameter("target_frame").as_string();
@@ -46,23 +48,6 @@ FindGraspPose::FindGraspPose()
   voxel_size_ = node_->get_parameter("voxel_size").as_double();
 
   node_->declare_parameter<std::string>("robot_description", "");
-
-  node_->declare_parameter<float>("min_x", -std::numeric_limits<float>::max());
-  min_x_ = node_->get_parameter("min_x").as_double();
-  node_->declare_parameter<float>("max_x", std::numeric_limits<float>::max());
-  max_x_ = node_->get_parameter("max_x").as_double();
-  node_->declare_parameter<float>("min_y", -std::numeric_limits<float>::max());
-  min_y_ = node_->get_parameter("min_y").as_double();
-  node_->declare_parameter<float>("max_y", std::numeric_limits<float>::max());
-  max_y_ = node_->get_parameter("max_y").as_double();
-  node_->declare_parameter<float>("min_z", -std::numeric_limits<float>::max());
-  min_z_ = node_->get_parameter("min_z").as_double();
-  node_->declare_parameter<float>("max_z", std::numeric_limits<float>::max());
-  max_z_ = node_->get_parameter("max_z").as_double();
-
-  if (pointcloud_topics_.empty()) {
-    RCLCPP_WARN(node_->get_logger(), "No pointcloud topics configured!");
-  }
 
   /* Initialize visualization tools
    * (we need this trick to make remote control work,
@@ -85,46 +70,16 @@ FindGraspPose::FindGraspPose()
     node_, "robot_description");
   psm_->startSceneMonitor("/monitored_planning_scene");
 
-  // // Test visualizeGripper
-  // // Move in a sin wave between y = +-0.5
-  // const float d_angle = 2 * M_PI * 0.1 * 0.1; // 0.1 Hz
-  // const float amplitude = 0.3;
-  // Eigen::Isometry3d gripper_pose = Eigen::Isometry3d::Identity();
-  // gripper_pose.translation() = Eigen::Vector3d(0.5, 0.0, 0.25);  // fixed x and z
-  // gripper_pose.linear() = Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitX()).toRotationMatrix(); // point downwards
-  // double angle = 0;
+  // Subscribers (must use shared_from_this for lifecycle safety)
+  sub_cloud1_.subscribe(node_, pointcloud_topic_left_);
+  sub_cloud2_.subscribe(node_, pointcloud_topic_right_);
 
-  // while (true) {
-  //   visual_tools_->deleteAllMarkers();
-
-  //   gripper_pose.translation().y() = amplitude * std::sin(angle);
-
-  //   rviz_visual_tools::Colors color = rviz_visual_tools::BLUE;  // default for unfeasible poses
-
-  //   try {
-  //     const bool in_collision = checkCollision(gripper_pose);
-  //     color = in_collision ? rviz_visual_tools::RED : rviz_visual_tools::GREEN;
-  //   } catch (const std::runtime_error & e) {
-  //   }
-
-  //   visualizeGripper(gripper_pose, 0.0, color);
-
-  //   std::this_thread::sleep_for(100ms);
-  //   angle += 0.1;
-  //   angle = std::fmod(angle, 2 * M_PI);
-  // }
-
-  // Create a subscriber for each topic
-  for (const auto & topic : pointcloud_topics_) {
-    auto sub = node_->create_subscription<sensor_msgs::msg::PointCloud2>(
-      topic,
-      rclcpp::SensorDataQoS(),
-      [this, topic](sensor_msgs::msg::PointCloud2::ConstSharedPtr msg) {
-        pointCloudCallback(msg, topic);
-      });
-    subscriptions_.push_back(sub);
-    RCLCPP_INFO(node_->get_logger(), "Subscribed to %s", topic.c_str());
-  }
+  // Define sync policy
+  typedef message_filters::sync_policies::ApproximateTime<
+    sensor_msgs::msg::PointCloud2, sensor_msgs::msg::PointCloud2> MySyncPolicy;
+  sync_ = std::make_shared<message_filters::Synchronizer<MySyncPolicy>>(MySyncPolicy(10), sub_cloud1_, sub_cloud2_);
+  sync_->registerCallback(std::bind(
+    &FindGraspPose::pointCloudCallback, this, std::placeholders::_1, std::placeholders::_2));
 
   // Initialize TF2
   tf_buffer_ = std::make_shared<tf2_ros::Buffer>(node_->get_clock());
@@ -139,179 +94,350 @@ void FindGraspPose::run()
 }
 
 void FindGraspPose::pointCloudCallback(
-  const sensor_msgs::msg::PointCloud2::ConstSharedPtr msg,
-  const std::string & topic_name)
+  const sensor_msgs::msg::PointCloud2::ConstSharedPtr msg_left,
+  const sensor_msgs::msg::PointCloud2::ConstSharedPtr msg_right)
 {
   MeasureExecutionTimeScoped timer("pointCloudCallback");
+  visual_tools_->deleteAllMarkers();
 
-  // Convert ROS msg -> PCL cloud
-  MeasureExecutionTime timer_conv("fromROSMsg");
-  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>());
-  pcl::fromROSMsg(*msg, *cloud);
-  timer_conv.stop();
+  RCLCPP_INFO(
+    node_->get_logger(), "==== Received clouds with %u + %u points ====",
+    msg_left->width * msg_left->height,
+    msg_right->width * msg_right->height);
 
-  RCLCPP_INFO(node_->get_logger(), "==== Received cloud from %s with %zu points ====",
-              topic_name.c_str(), cloud->size());
+  // Process both clouds in parallel: convert to PCL and compute normals
+  std::vector<std::pair<sensor_msgs::msg::PointCloud2, std::string>> msg_frame_pairs = {
+    {*msg_left,  camera_frame_left_},
+    {*msg_right, camera_frame_right_}
+  };
 
-  MeasureExecutionTime timer_transform("transformPointCloud");
-  cloud = transformPointCloud(cloud, target_frame_);
-  timer_transform.stop();
+  // Launch async tasks
+  std::vector<std::future<pcl::PointCloud<pcl::PointNormal>::Ptr>> futures;
+  futures.reserve(msg_frame_pairs.size());
 
-  // Crop to region of interest
-  MeasureExecutionTime timer_crop("cropPointCloud");
-  cloud = cropPointCloud(cloud, min_x_, max_x_, min_y_, max_y_, min_z_, max_z_);
-  timer_crop.stop();
+  // Note: this is not the nicest code I've ever written.
+  // The problem is that when we receive the pcl here, it's already transformed
+  // to world frame, but we still need to know the camera frame for the viewpoint,
+  // to know which direction the normals should point.
+  for (const auto &[msg, frame] : msg_frame_pairs) {
+    futures.push_back(std::async(std::launch::async, [this, msg, frame]() {
+      // Convert ROS msg -> PCL cloud
+      MeasureExecutionTime timer_conv("fromROSMsg");
+      auto cloud = std::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
+      pcl::fromROSMsg(msg, *cloud);
+      timer_conv.stop();
 
-  // Compute normals (optional, may be used later)
-  MeasureExecutionTime timer_normals("computeNormals");
-  geometry_msgs::msg::Point viewpoint;
-  try {
-    auto transform_stamped = tf_buffer_->lookupTransform(
-        target_frame_, msg->header.frame_id, rclcpp::Time(0));
-    viewpoint.x = transform_stamped.transform.translation.x;
-    viewpoint.y = transform_stamped.transform.translation.y;
-    viewpoint.z = transform_stamped.transform.translation.z;
-  } catch (const tf2::TransformException& ex) {
-    RCLCPP_WARN(node_->get_logger(), "Could not get camera_link position: %s", ex.what());
-    viewpoint.x = viewpoint.y = viewpoint.z = 0.0;
+      // Get camera viewpoint in target frame
+      geometry_msgs::msg::Point viewpoint;
+      std::string frame_or = frame.empty() ? msg.header.frame_id : frame;
+      try {
+        auto tf = tf_buffer_->lookupTransform(target_frame_, frame_or, rclcpp::Time(0));
+        viewpoint.x = tf.transform.translation.x;
+        viewpoint.y = tf.transform.translation.y;
+        viewpoint.z = tf.transform.translation.z;
+      } catch (const tf2::TransformException &ex) {
+        RCLCPP_WARN(node_->get_logger(), "Could not get camera_link position: %s", ex.what());
+        viewpoint.x = viewpoint.y = viewpoint.z = 0.0;
+      }
+
+      // Compute normals
+      MeasureExecutionTime timer_normals("computeNormals");
+      auto cloud_with_normals = computeNormals(cloud, viewpoint);
+      timer_normals.stop();
+
+      return cloud_with_normals;
+    }));
   }
-  auto with_normals = computeNormals(cloud, viewpoint);
-  timer_normals.stop();
 
-  // Store voxelized cloud
-  clouds_with_normals_[topic_name] = with_normals;
+  // Collect results
+  std::vector<pcl::PointCloud<pcl::PointNormal>::Ptr> clouds_with_normals;
+  clouds_with_normals.reserve(futures.size());
+  for (auto &fut : futures)
+    clouds_with_normals.push_back(fut.get());
 
-  // Visualize (optional, here just show cloud size in console)
-  RCLCPP_INFO(node_->get_logger(),
-              "Processed voxelized cloud from %s with %zu points",
-              topic_name.c_str(), with_normals->size());
+  // Merge clouds
+  MeasureExecutionTime timer_merge("mergeClouds");
+  pcl::PointCloud<pcl::PointNormal>::Ptr cloud_merged(new pcl::PointCloud<pcl::PointNormal>());
+  for (const auto &cloud : clouds_with_normals) {
+    *cloud_merged += *cloud;
+  }
+  timer_merge.stop();
+  RCLCPP_INFO(
+    node_->get_logger(), "Merged cloud contains %zu points",
+    cloud_merged->size());
 
-  // If we have received clouds from all topics, merge them
-  if (clouds_with_normals_.size() == pointcloud_topics_.size()) {
-    std::vector<pcl::PointCloud<pcl::PointNormal>::ConstPtr> cloud_vec;
-    cloud_vec.reserve(clouds_with_normals_.size());
-    for (auto &kv : clouds_with_normals_) {
-      cloud_vec.push_back(kv.second);
+  // Voxelize merged cloud
+  pcl::VoxelGrid<pcl::PointNormal> voxel_filter;
+  voxel_filter.setInputCloud(cloud_merged);
+  voxel_filter.setLeafSize(voxel_size_, voxel_size_, voxel_size_);
+
+  pcl::PointCloud<pcl::PointNormal>::Ptr cloud_voxel(new pcl::PointCloud<pcl::PointNormal>());
+  voxel_filter.filter(*cloud_voxel);
+
+  RCLCPP_INFO(
+    node_->get_logger(), "Downsampled cloud contains %zu points after voxel grid size %.3f",
+    cloud_voxel->size(), voxel_size_);
+
+  // Visualize normals
+  for (size_t i = 0; i < cloud_voxel->size(); i += 1) {  // visualize every 10th normal
+    const auto & pt = cloud_voxel->points[i];
+    if (!std::isnan(pt.normal_x) && !std::isnan(pt.normal_y) && !std::isnan(pt.normal_z)) {
+      Eigen::Vector3d start(pt.x, pt.y, pt.z);
+      Eigen::Vector3d end(pt.x + 0.01 * pt.normal_x,
+                          pt.y + 0.01 * pt.normal_y,
+                          pt.z + 0.01 * pt.normal_z);
+
+      // Color based on curvature
+      rviz_visual_tools::Colors color;
+      if (pt.curvature < 0.001)
+        color = rviz_visual_tools::GREEN;
+      else if (pt.curvature < 0.01)
+        color = rviz_visual_tools::YELLOW;
+      else
+        color = rviz_visual_tools::RED;
+
+      visual_tools_->publishArrow(
+        tf2::toMsg(start), tf2::toMsg(end), color,
+        rviz_visual_tools::Scales::XXXXSMALL);
     }
+  }
+  visual_tools_->trigger();
 
-    MeasureExecutionTime timer_merge("mergeClouds");
-    const auto merged_cloud = mergeClouds(cloud_vec, voxel_size_);
-    timer_merge.stop();
+  // Compute principal curvatures
+  MeasureExecutionTime timer_pcs("computePrincipalCurvatures");
+  auto principal_curvatures = computePrincipalCurvatures(cloud_voxel);
+  timer_pcs.stop();
 
-    // Clear stored clouds for next round
-    clouds_with_normals_.clear();
-
-    // Visualize normals as lines
-    visual_tools_->deleteAllMarkers();
-    for (size_t i = 0; i < merged_cloud->size(); i += 10) {  // visualize every 10th normal
-      const auto & pt = merged_cloud->points[i];
-      if (!std::isnan(pt.normal_x) && !std::isnan(pt.normal_y) && !std::isnan(pt.normal_z)) {
-        Eigen::Vector3d start(pt.x, pt.y, pt.z);
-        Eigen::Vector3d end(pt.x + 0.01 * pt.normal_x,
-                            pt.y + 0.01 * pt.normal_y,
-                            pt.z + 0.01 * pt.normal_z);
-
-        // Color based on curvature
-        rviz_visual_tools::Colors color;
-        if (pt.curvature < 0.01)
-          color = rviz_visual_tools::GREEN;
-        else if (pt.curvature < 0.03)
-          color = rviz_visual_tools::YELLOW;
-        else
-          color = rviz_visual_tools::RED;
-
-        visual_tools_->publishLine(
-          start, end, color, rviz_visual_tools::Scales::XXXXSMALL);
+  static const size_t n_candidates = 1;
+  std::unique_ptr<CandidateGrasp> best_candidate;
+  for (size_t i = 0; i < n_candidates; ++i) {
+    const auto candidate = sampleCandidateGrasp(cloud_voxel, principal_curvatures, true);
+    if (candidate.success && candidate.inliers > 0) {
+      if (!best_candidate || candidate.inliers > best_candidate->inliers) {
+        best_candidate = std::make_unique<CandidateGrasp>(candidate);
       }
     }
-    visual_tools_->trigger();
+  }
+  if (best_candidate) {
+    RCLCPP_INFO(
+      node_->get_logger(), "Best candidate has %zu inliers (index %zu)",
+      best_candidate->inliers, best_candidate->index);
+    visualizeGripper(best_candidate->pose, 0.0, rviz_visual_tools::Colors::GREEN);
+  } else {
+    RCLCPP_WARN(node_->get_logger(), "No valid grasp candidate found");
+  }
 
-    // Compute principal curvatures
-    MeasureExecutionTime timer_pcs("computePrincipalCurvatures");
-    auto pcs = computePrincipalCurvatures(merged_cloud);
-    timer_pcs.stop();
+  visual_tools_->prompt("Press 'next' in the RvizVisualToolsGui to continue");
+}
 
-    // Generate random test point
-    const size_t idx = std::rand() % merged_cloud->size();
 
-    /* Find Darboux frame
-     * x axis: direction of maximum curvature (principal curvature)
-     * y axis: surface normal pointing inwards
-     * z axis: minor axis of curvature (cross product of x and y)
-     */
-    const auto & pt = merged_cloud->points[idx];
-    Eigen::Vector3d p(pt.x, pt.y, pt.z);
+FindGraspPose::CandidateGrasp FindGraspPose::sampleCandidateGrasp(
+  const pcl::PointCloud<pcl::PointNormal>::ConstPtr & cloud,
+  const pcl::PointCloud<pcl::PrincipalCurvatures>::ConstPtr & pcs,
+  bool interactive)
+{
+  CandidateGrasp result;
 
-    const auto & curvature = pcs->points[idx];
-    Eigen::Vector3d n(pt.normal_x, pt.normal_y, pt.normal_z);
-    n = -n / n.norm(); // Unit normal pointing inwards
-    Eigen::Vector3d d1(curvature.principal_curvature_x, curvature.principal_curvature_y, curvature.principal_curvature_z);
-    d1.normalize();
+  // Generate random test point
+  const size_t idx = std::rand() % cloud->size();
+  result.index = idx;
 
-    Eigen::Vector3d d2 = d1.cross(n);
-    // d2.normalize();  // already unit length
-    Eigen::Matrix3d R;
-    R.col(0) = d1;
-    R.col(1) = n;
-    R.col(2) = d2;
+  /* Find Darboux frame
+   * x axis: direction of maximum curvature (principal curvature)
+   * y axis: surface normal pointing inwards
+   * z axis: minor axis of curvature (cross product of x and y)
+   */
+  const auto & pt = cloud->points[idx];
+  Eigen::Vector3d p(pt.x, pt.y, pt.z);
 
-    Eigen::Isometry3d T = Eigen::Isometry3d::Identity();
-    T.translation() = p;
-    T.linear() = R;
-    visual_tools_->publishAxisLabeled(T.cast<double>(), "Darboux_frame");
-    visual_tools_->trigger();
+  const auto & curvature = pcs->points[idx];
+  Eigen::Vector3d n(pt.normal_x, pt.normal_y, pt.normal_z);
+  n = -n.normalized();  // Unit normal pointing inwards
+  Eigen::Vector3d d1(
+    curvature.principal_curvature_x,
+    curvature.principal_curvature_y,
+    curvature.principal_curvature_z);
+  d1.normalize();
 
-    // Distance offset along surface normal
-    const double distance_to_surface = 0.01;
-    Eigen::Vector3d p_grasp = p - distance_to_surface * n;
+  Eigen::Vector3d d2 = d1.cross(n);
+  d2.normalize();  // TODO should already be unit length
+  n = d2.cross(d1);  // re-orthogonalize n  TODO should already be orthonormal
+  Eigen::Matrix3d R;
+  R.col(0) = d1;
+  R.col(1) = n;
+  R.col(2) = d2;
 
-    // Build Darboux frame
-    Eigen::Isometry3d T_grasp = Eigen::Isometry3d::Identity();
-    T_grasp.translation() = p_grasp;
-    T_grasp.linear() = R;
+  // Build Darboux frame
+  Eigen::Isometry3d T_dbx = Eigen::Isometry3d::Identity();
+  T_dbx.translation() = p;
+  T_dbx.linear() = R;
+  visual_tools_->publishAxisLabeled(T_dbx, "Darboux_frame");
+  visual_tools_->trigger();
 
-    // ------------------------------------------------------------------
-    // Adjust: express T_grasp at gripper root (e.g. wrist_3_link) instead of grasp_link
-    // ------------------------------------------------------------------
-    static robot_model_loader::RobotModelLoader loader(node_, "robot_description");
-    auto robot_model = loader.getModel();
-    moveit::core::RobotStatePtr state_ptr = move_group_arm_->getCurrentState();
-    moveit::core::RobotState robot_state = *state_ptr;
-
-    // Define links
-    const std::string grasp_link = "grasp_link";
-    const std::string root_link  = "robotiq_85_base_link";
-
-    // Get transforms from robot_state (both in base frame)
-    Eigen::Isometry3d T_base_grasp = robot_state.getGlobalLinkTransform(grasp_link);
-    Eigen::Isometry3d T_base_root  = robot_state.getGlobalLinkTransform(root_link);
-
-    // Compute fixed transform root←grasp
-    Eigen::Isometry3d T_root_grasp = T_base_root.inverse() * T_base_grasp;
-
-    // Final pose: where the root link should be, given the Darboux frame at grasp_link
-    Eigen::Isometry3d T_root = T_grasp * T_root_grasp.inverse();
-
-    // ------------------------------------------------------------------
-    // Collision check now at root pose
-    // ------------------------------------------------------------------
-    rviz_visual_tools::Colors color = rviz_visual_tools::BLUE;  // default for unfeasible poses
+  // Get grasp→gripper_base transform (only once)
+  static const std::string grasp_link = "grasp_link";
+  static const std::string gripper_base_link = "robotiq_85_base_link";
+  if (!T_gripper_grasp_) {
     try {
-      const bool in_collision = checkCollision(T_root);
-      RCLCPP_INFO(node_->get_logger(), "Grasp pose is %s",
-                  in_collision ? "in collision" : "collision-free");
-      color = in_collision ? rviz_visual_tools::RED : rviz_visual_tools::GREEN;
+      const auto transform = tf_buffer_->lookupTransform(
+        grasp_link, gripper_base_link, rclcpp::Time(0));
+      // This gives T_gripper_base_grasp (grasp → gripper_base)
+      T_gripper_grasp_ = std::make_shared<Eigen::Isometry3d>(
+        tf2::transformToEigen(transform.transform));
+      RCLCPP_INFO(
+        node_->get_logger(), "Got transform %s -> %s: %.3f %.3f %.3f",
+        grasp_link.c_str(), gripper_base_link.c_str(),
+        T_gripper_grasp_->translation().x(),
+        T_gripper_grasp_->translation().y(),
+        T_gripper_grasp_->translation().z());  // TODO remove after checking it's not inverted
+    } catch (const tf2::TransformException & ex) {
+      RCLCPP_WARN(
+        node_->get_logger(), "Could not get transform %s -> %s: %s",
+        grasp_link.c_str(), gripper_base_link.c_str(), ex.what());
+      result.success = false;
+      return result;
+    }
+  }
+
+  // Collision line search along Darboux frame y axis
+  const double search_limit = 0.05;  // m, +-
+  const size_t n_steps = 10;         // total
+
+  std::unique_ptr<Eigen::Isometry3d> T_gripper_base_candidate_best;
+  for (size_t i = 0; i < n_steps; i++) {
+    // Starts from y = -search_limit, because dbx y axis points inwards
+    double offset = (static_cast<double>(i) / n_steps - 0.5) * 2.0 * search_limit;
+
+    /* Rotate Dbx to Gripper orientation
+     *
+     * x axes align
+     *
+     * Dbx:
+     * - x points towards greatest curvature
+     * - y points inwards
+     * - z points along smallest curvature
+     *
+     * Gripper:
+     * - x points along axis where fingers move
+     * - y points perp to approach
+     * - z points inwards
+     *
+     * We have to rotate Dbx -90° around its local x axis
+     */
+    Eigen::Isometry3d T_grasp_offset = T_dbx;
+
+    // Rotate around local x axis of T_dbx
+    Eigen::Matrix3d R_gripper_from_world;
+    Eigen::Matrix3d R_dbx = T_dbx.linear();
+    R_gripper_from_world.col(0) = R_dbx.col(0);        // Gripper.x  = Dbx.x
+    R_gripper_from_world.col(2) = R_dbx.col(1);        // Gripper.z  = Dbx.y
+    R_gripper_from_world.col(1) = -R_dbx.col(2);       // Gripper.y  = -Dbx.z
+    T_grasp_offset.linear() = R_gripper_from_world;
+
+    // Apply offset along local z axis (after rotation)
+    T_grasp_offset.translation() += offset * T_grasp_offset.linear().col(2);
+
+    // Compose correctly: world→gripper_base = world→grasp * grasp→gripper_base
+    const Eigen::Isometry3d T_gripper_base_candidate =
+      T_grasp_offset * (*T_gripper_grasp_);
+
+    // Check collision
+    bool in_collision = true;
+    bool feasible = true;
+    try {
+      MeasureExecutionTime timer_cc("checkGripperCollision");
+      in_collision = checkGripperCollision(T_gripper_base_candidate);
+      timer_cc.stop();
     } catch (const std::runtime_error & e) {
-      // RCLCPP_WARN(node_->get_logger(), "Collision check failed: %s", e.what());
+      RCLCPP_WARN(node_->get_logger(), "Collision check failed: %s", e.what());
+      feasible = false;
     }
 
-    visualizeGripper(T_root, 0.0, color);
+    std::string status;
+    rviz_visual_tools::Colors color;
+    if (!feasible) {
+      status = "ik failed";
+      color = rviz_visual_tools::Colors::BLUE;
+    } else if (in_collision) {
+      status = "in collision";
+      color = rviz_visual_tools::Colors::RED;
+    } else {
+      status = "collision-free";
+      color = rviz_visual_tools::Colors::GREEN;
+    }
 
-    visual_tools_->prompt("Press 'next' in the RvizVisualToolsGui to continue");
+    visualizeGripper(
+      T_gripper_base_candidate, 0.0, color);
 
-    // Linearly search for a valid grasp pose
-    // TODO
+    RCLCPP_INFO(node_->get_logger(), "Grasp pose (offset %.3f): %s", offset, status.c_str());
+
+    if (!in_collision && !T_gripper_base_candidate_best)
+      T_gripper_base_candidate_best = std::make_unique<Eigen::Isometry3d>(
+        T_gripper_base_candidate);
   }
+
+  if (!T_gripper_base_candidate_best) {
+    RCLCPP_WARN(node_->get_logger(), "No feasible grasp pose found");
+    result.success = false;
+    return result;
+  }
+
+  if (interactive) {
+    visual_tools_->prompt("Press 'next' in the RvizVisualToolsGui to continue");
+    visual_tools_->deleteAllMarkers();
+  }
+
+  visualizeGripper(
+    *T_gripper_base_candidate_best, 0.0, rviz_visual_tools::Colors::TRANSLUCENT_LIGHT);
+
+  // Evaluate inliers: points between the gripper fingers
+  result.inliers = 0;
+  const auto& T_grasp_world = *T_gripper_base_candidate_best * T_gripper_grasp_->inverse();
+  static const double gripper_inner_width = 0.085;
+  static const double finger_length = 0.038;
+  static const double finger_width = 0.022;
+  visual_tools_->publishAxisLabeled(T_grasp_world, "Grasp_frame");
+  visual_tools_->publishWireframeCuboid(
+    T_grasp_world,
+    gripper_inner_width, finger_width, finger_length,
+    rviz_visual_tools::Colors::YELLOW);
+
+  // Gripper axes in world frame
+  Eigen::Vector3d gripper_x = T_grasp_world.linear().col(0);  // closing direction
+  Eigen::Vector3d gripper_y = T_grasp_world.linear().col(1);  // lateral
+  Eigen::Vector3d gripper_z = T_grasp_world.linear().col(2);  // approach
+  Eigen::Vector3d p_center = T_grasp_world.translation();
+
+  const double hx = gripper_inner_width / 2.0;
+  const double hy = finger_width / 2.0;
+  const double hz = finger_length / 2.0;
+
+  result.inliers = 0;
+
+  // Loop through points
+  for (const auto& pt : cloud->points) {
+    Eigen::Vector3d p(pt.x, pt.y, pt.z);
+    Eigen::Vector3d diff = p - p_center;
+
+    // Project onto gripper axes
+    double dx = diff.dot(gripper_x);
+    double dy = diff.dot(gripper_y);
+    double dz = diff.dot(gripper_z);
+
+    // Check bounds in gripper-aligned coordinates
+    if (std::abs(dx) <= hx &&
+        std::abs(dy) <= hy &&
+        std::abs(dz) <= hz) {
+      ++result.inliers;
+    }
+  }
+
+  RCLCPP_INFO(
+    node_->get_logger(), "Found %zu inliers between gripper fingers", result.inliers);
+
+  result.pose = *T_gripper_base_candidate_best;
+  result.success = true;
+  return result;
 }
 
 std::vector<int> FindGraspPose::visualizeGripper(
@@ -413,65 +539,6 @@ std::vector<int> FindGraspPose::visualizeGripper(
   return marker_ids;
 }
 
-pcl::PointCloud<pcl::PointXYZ>::Ptr FindGraspPose::transformPointCloud(
-    const pcl::PointCloud<pcl::PointXYZ>::ConstPtr & cloud,
-    const std::string & target_frame)
-{
-  // Lookup the transform from cloud frame to target frame
-  geometry_msgs::msg::TransformStamped transform_stamped;
-  try {
-      transform_stamped = tf_buffer_->lookupTransform(
-          target_frame, cloud->header.frame_id,
-          rclcpp::Time(cloud->header.stamp));
-  } catch (const tf2::TransformException& ex) {
-      RCLCPP_WARN(node_->get_logger(), "Could not transform point cloud: %s", ex.what());
-      return nullptr;
-  }
-
-  // Convert geometry_msgs Transform to Eigen Affine3f
-  Eigen::Affine3f transform_eigen = Eigen::Affine3f::Identity();
-  transform_eigen.translation() <<
-      transform_stamped.transform.translation.x,
-      transform_stamped.transform.translation.y,
-      transform_stamped.transform.translation.z;
-  transform_eigen.linear() = Eigen::Quaternionf(
-      transform_stamped.transform.rotation.w,
-      transform_stamped.transform.rotation.x,
-      transform_stamped.transform.rotation.y,
-      transform_stamped.transform.rotation.z).toRotationMatrix();
-
-  // Execute the transformation
-  pcl::PointCloud<pcl::PointXYZ>::Ptr transformed_cloud (new pcl::PointCloud<pcl::PointXYZ>());
-  pcl::transformPointCloud(*cloud, *transformed_cloud, transform_eigen);
-
-  return transformed_cloud;
-}
-
-pcl::PointCloud<pcl::PointXYZ>::Ptr FindGraspPose::cropPointCloud(
-  const pcl::PointCloud<pcl::PointXYZ>::ConstPtr & input,
-  float min_x, float max_x,
-  float min_y, float max_y,
-  float min_z, float max_z)
-{
-    // Initialize the CropBox filter
-    pcl::CropBox<pcl::PointXYZ> crop_filter;
-    crop_filter.setInputCloud(input);
-
-    // Define the minimum and maximum points of the box
-    Eigen::Vector4f min_pt(min_x, min_y, min_z, 1.0);
-    Eigen::Vector4f max_pt(max_x, max_y, max_z, 1.0);
-
-    // Set the crop box parameters
-    crop_filter.setMin(min_pt);
-    crop_filter.setMax(max_pt);
-
-    // Apply the filter and store the result
-    pcl::PointCloud<pcl::PointXYZ>::Ptr cropped_cloud(new pcl::PointCloud<pcl::PointXYZ>());
-    crop_filter.filter(*cropped_cloud);
-
-    return cropped_cloud;
-}
-
 pcl::PointCloud<pcl::PointNormal>::Ptr FindGraspPose::computeNormals(
   const pcl::PointCloud<pcl::PointXYZ>::ConstPtr & input,
   const geometry_msgs::msg::Point & viewpoint,
@@ -517,42 +584,13 @@ pcl::PointCloud<pcl::PrincipalCurvatures>::Ptr FindGraspPose::computePrincipalCu
   return pcs;
 }
 
-pcl::PointCloud<pcl::PointNormal>::Ptr FindGraspPose::mergeClouds(
-  const std::vector<pcl::PointCloud<pcl::PointNormal>::ConstPtr> & clouds,
-  const float voxel_size)
-{
-  // Concatenate all point clouds into one
-  pcl::PointCloud<pcl::PointNormal>::Ptr merged(new pcl::PointCloud<pcl::PointNormal>());
-  for (const auto &cloud : clouds) {
-    if (cloud && !cloud->empty()) {
-      *merged += *cloud;
-    }
-  }
-
-  RCLCPP_INFO(node_->get_logger(), "Merged cloud contains %zu points before downsampling", merged->size());
-
-  // Apply VoxelGrid filter to downsample
-  pcl::VoxelGrid<pcl::PointNormal> voxel_filter;
-  voxel_filter.setInputCloud(merged);
-  voxel_filter.setLeafSize(voxel_size, voxel_size, voxel_size);  // cubic voxel grid :contentReference[oaicite:1]{index=1}
-
-  pcl::PointCloud<pcl::PointNormal>::Ptr downsampled(new pcl::PointCloud<pcl::PointNormal>());
-  voxel_filter.filter(*downsampled);
-
-  RCLCPP_INFO(
-    node_->get_logger(), "Downsampled cloud contains %zu points after voxel grid size %.3f",
-    downsampled->size(), voxel_size);
-
-  return downsampled;
-}
-
-bool FindGraspPose::checkCollision(
+bool FindGraspPose::checkGripperCollision(
   const Eigen::Isometry3d & gripper_base_pose, double gripper_joint)
 {
   // // --- Step 1: Transform grasp_link pose to gripper_link pose ---
   // // Example: grasp_link is at finger tips center, gripper_link is base of fingers
   // Eigen::Isometry3d offset = Eigen::Isometry3d::Identity();
-  // offset.translation() = Eigen::Vector3d(0.0, 0.0, -0.14); // 5 cm back along Z
+  // offset.translation() = Eigen::Vector3d(0.0, 0.0, -0.14);
 
   // Eigen::Isometry3d gripper_pose = grasp_pose * offset.inverse();
 

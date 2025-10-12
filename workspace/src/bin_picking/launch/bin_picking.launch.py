@@ -8,6 +8,8 @@ from launch_ros.substitutions import FindPackageShare
 from launch.substitutions import PathJoinSubstitution
 from launch.actions import OpaqueFunction
 from moveit_configs_utils import MoveItConfigsBuilder
+from launch_ros.descriptions import ComposableNode
+from launch_ros.actions import ComposableNodeContainer
 
 
 
@@ -74,10 +76,10 @@ def launch_setup(context, *args, **kwargs):
             moveit_config.robot_description_kinematics,
             moveit_config.sensors_3d,
             {
-                'pointcloud_topics': [
-                    '/bin1/left/camera/points',
-                    '/bin1/right/camera/points',
-                ],
+                'pointcloud_topic_left': '/bin1/left/camera/points_cropped',
+                'pointcloud_topic_right': '/bin1/right/camera/points_cropped',
+                'camera_frame_left': 'bin1_cam_left',
+                'camera_frame_right': 'bin1_cam_right',
                 'voxel_size': 0.01,
                 'publish_cropped_clouds': True,
                 'target_frame': 'world',
@@ -91,71 +93,46 @@ def launch_setup(context, *args, **kwargs):
         ],
     ))
 
-    #  # PCL CropBox filters for each depth camera
-    #  def create_crop_box_node(camera_name: str, parameters: dict) -> ComposableNode:
-    #      parameters.update({
-    #          'use_sim_time': True,
-    #          'input_frame': 'world',
-    #          'output_frame': 'world'})
-    #      return ComposableNode(
-    #          package="pcl_ros",
-    #          plugin="pcl_ros::CropBox",
-    #          name=f"{camera_name.replace('/', '_')}_crop_box",
-    #          remappings=[
-    #              ("input", f"/{camera_name}/camera/points"),
-    #              ("output", f"/{camera_name}/camera/points_cropped")
-    #          ],
-    #          parameters=[parameters],
-    #      )
+    # PCL CropBox filters for each depth camera
+    def create_crop_box_node(
+            camera_name: str, bin_x: float, bin_y: float,
+            wall_cutoff: float) -> ComposableNode:
+        bin_size_x = 0.4
+        bin_size_y = 0.4
+        parameters = {
+            "min_x": bin_x - bin_size_x / 2 + wall_cutoff,
+            "max_x": bin_x + bin_size_x / 2 - wall_cutoff,
+            "min_y": bin_y - bin_size_y / 2 + wall_cutoff,
+            "max_y": bin_y + bin_size_y / 2 - wall_cutoff,
+            "min_z": wall_cutoff,
+            "max_z": 0.5,
+            "use_sim_time": True,
+            "input_frame": "world",
+            "output_frame": "world",
+        }
+        return ComposableNode(
+            package="pcl_ros",
+            plugin="pcl_ros::CropBox",
+            name=f"{camera_name.replace('/', '_')}_crop_box",
+            remappings=[
+                ("input", f"/{camera_name}/camera/points"),
+                ("output", f"/{camera_name}/camera/points_cropped"),
+            ],
+            parameters=[parameters],
+        )
 
-    #  actions.append(ComposableNodeContainer(
-    #      name='bin_picking_container',
-    #      namespace='',
-    #      package='rclcpp_components',
-    #      executable='component_container',
-    #      composable_node_descriptions=[
-    #          ComposableNode(
-    #              package='bin_picking',
-    #              plugin='FindGraspPose',
-    #              name='find_grasp_pose',
-    #              parameters=[
-    #                  moveit_config.robot_description,
-    #                  moveit_config.robot_description_semantic,
-    #                  moveit_config.robot_description_kinematics,
-    #                  {
-    #                      'pointcloud_topics': [
-    #                          '/bin1/left/camera/points',
-    #                          '/bin1/right/camera/points',
-    #                      ],
-    #                      'voxel_size': 0.01,
-    #                      'publish_cropped_clouds': True,
-    #                      'target_frame': 'world',
-    #                      "min_x": bin1_x - bin_size_x/2 + wall_cutoff,
-    #                      "max_x": bin1_x + bin_size_x/2 - wall_cutoff,
-    #                      "min_y": bin1_y - bin_size_y/2 + wall_cutoff,
-    #                      "max_y": bin1_y + bin_size_y/2 - wall_cutoff,
-    #                      "min_z": wall_cutoff, "max_z": 0.5,
-    #                      'use_sim_time': True,
-    #                  }
-    #              ],
-    #          ),
-    #          #  create_crop_box_node("bin1/left", {
-    #          #      "min_x": bin1_x - bin_size_x/2 + wall_cutoff,
-    #          #      "max_x": bin1_x + bin_size_x/2 - wall_cutoff,
-    #          #      "min_y": bin1_y - bin_size_y/2 + wall_cutoff,
-    #          #      "max_y": bin1_y + bin_size_y/2 - wall_cutoff,
-    #          #      "min_z": wall_cutoff, "max_z": 0.5,
-    #          #  }),
-    #          #  create_crop_box_node("bin1/right", {
-    #          #      "min_x": bin1_x - bin_size_x/2 + wall_cutoff,
-    #          #      "max_x": bin1_x + bin_size_x/2 - wall_cutoff,
-    #          #      "min_y": bin1_y - bin_size_y/2 + wall_cutoff,
-    #          #      "max_y": bin1_y + bin_size_y/2 - wall_cutoff,
-    #          #      "min_z": wall_cutoff, "max_z": 0.5,
-    #          #  }),
-    #      ],
-    #      output='screen',
-    #  ))
+
+    actions.append(ComposableNodeContainer(
+        name='bin_picking_container',
+        namespace='',
+        package='rclcpp_components',
+        executable='component_container',
+        composable_node_descriptions=[
+            create_crop_box_node("bin1/left", bin1_x, bin1_y, wall_cutoff),
+            create_crop_box_node("bin1/right", bin1_x, bin1_y, wall_cutoff),
+        ],
+        output='screen',
+    ))
 
     return actions
 
