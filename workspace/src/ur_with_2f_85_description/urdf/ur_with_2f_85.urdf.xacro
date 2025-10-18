@@ -117,6 +117,6 @@
     <joint name="gripper_joint" type="fixed">
         <parent link="wrist_3_link"/>
         <child link="grasp_link"/>
-        <origin xyz="0 0 0.14" rpy="0 0 0"/>
+        <origin xyz="0 0 0.133.7" rpy="0 0 0"/>
     </joint>
 </robot>

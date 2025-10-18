@@ -72,7 +72,7 @@ private:
    * spins it, in getCurrentState it calls CurrentStateMonitor, which uses
    * the node passed to MGI, and doesn't create its own callback group.
    */
-  rclcpp::Node::SharedPtr node_, mgi_node_, vis_node_;
+  rclcpp::Node::SharedPtr node_, mgi_node_, vis_node_, psm_node_;
   rclcpp::executors::MultiThreadedExecutor executor_;
   std::thread spin_thread_;
 
@@ -80,6 +80,7 @@ private:
   moveit::planning_interface::MoveGroupInterfacePtr move_group_arm_;
   moveit::planning_interface::MoveGroupInterfacePtr move_group_gripper_;
   std::shared_ptr<planning_scene_monitor::PlanningSceneMonitor> psm_;
+  robot_model_loader::RobotModelLoaderPtr robot_model_loader_;
 
   message_filters::Subscriber<sensor_msgs::msg::PointCloud2> sub_cloud1_, sub_cloud2_;
   std::shared_ptr<message_filters::Synchronizer<
@@ -113,24 +114,29 @@ private:
     const pcl::PointCloud<pcl::PointNormal>::ConstPtr & input,
     const int k_neighbors = 10);
 
-  // Checks if the gripper at a given pose is in collision
-  bool checkGripperCollision(const Eigen::Isometry3d & gripper_base_pose, double gripper_joint = 0.0);
+  /// @brief Returns true if the gripper at given pose is in collision
+  bool checkGripperCollision(const moveit::core::RobotStatePtr kinematic_state);
 
-  /** @brief Visualize the gripper at a given pose
+  /// @brief Visualize the gripper at a given pose
+  void visualizeGripper(
+    const moveit::core::RobotStatePtr kinematic_state,
+    rviz_visual_tools::Colors color = rviz_visual_tools::BLUE);
+
+  /** @brief Create a copy of robot state with the gripper base and joint set to given values
    *
    * @param gripper_joint Gripper joint value (0.0 = open, 0.8 = closed)
-   * @return IDs of the created markers
    */
-  std::vector<int> visualizeGripper(
-    const Eigen::Isometry3d & gripper_base_pose, double gripper_joint = 0.0,
-    rviz_visual_tools::Colors color = rviz_visual_tools::BLUE);
+  moveit::core::RobotStatePtr getRobotStateForPose(
+    const Eigen::Isometry3d& gripper_base_pose,
+    double gripper_joint_value = 0.0);
 
   struct CandidateGrasp
   {
     Eigen::Isometry3d pose;
-    size_t index;
+    size_t selected_point_index;
     bool success;
     size_t inliers;
+    double cost;
   };
   CandidateGrasp sampleCandidateGrasp(
     const pcl::PointCloud<pcl::PointNormal>::ConstPtr & cloud,
