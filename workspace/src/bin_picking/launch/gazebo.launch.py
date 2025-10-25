@@ -46,15 +46,15 @@ def generate_launch_description():
 
     def launch_setup(context, *args, **kwargs):
         # Build gz sim arguments dynamically
-        gz_args = " -r"  # run sim on start
+        gz_args = ""
+        if not toBool(paused, context):
+            gz_args += " -r"
         if not toBool(gazebo_gui, context):
             gz_args += " -s"
         if toBool(gazebo_verbose, context):
             gz_args += " -v 4"
         if toBool(use_bullet_physics, context):
             gz_args += " --physics-engine gz-physics-bullet-featherstone-plugin"
-        if toBool(paused, context):
-            gz_args += " -p"
         gz_args += " " + world_file.perform(context)
 
         gz_launch_description = IncludeLaunchDescription(
