@@ -7,6 +7,7 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.substitutions import FindPackageShare
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
+from launch.logging import get_logger
 from ros_gz_bridge.actions import RosGzBridge
 
 
@@ -14,14 +15,15 @@ def generate_launch_description() -> LaunchDescription:
     declared_arguments = [
         DeclareLaunchArgument('world_file', default_value='',
                               description='SDF world file to load'),
-        DeclareLaunchArgument('num_objects', default_value='4', description='Number of objects to spawn'),
-        DeclareLaunchArgument('spawn_height_min', default_value='0.2', description='Minimum spawn height'),
+        DeclareLaunchArgument('num_objects', default_value='5', description='Number of objects to spawn'),
+        DeclareLaunchArgument('spawn_height_min', default_value='0.1', description='Minimum spawn height'),
         DeclareLaunchArgument('spawn_height_diff', default_value='0.1', description='Height difference between stacked objects'),
         DeclareLaunchArgument('spawn_center_x', default_value='0.5', description='Center X position for random spawn'),
         DeclareLaunchArgument('spawn_center_y', default_value='0.0', description='Center Y position for random spawn'),
-        DeclareLaunchArgument('spawn_radius', default_value='0.1', description='Radius for random spawn distribution'),
-        DeclareLaunchArgument('seed', default_value='2', description='Random seed for reproducibility'),
-        DeclareLaunchArgument('only_mustard_bottle', default_value='true',
+        DeclareLaunchArgument('spawn_radius', default_value='0.07', description='Radius for random spawn distribution'),
+        DeclareLaunchArgument('seed', default_value='5', description='Random seed for reproducibility'),
+        DeclareLaunchArgument('gazebo_gui', default_value='false', description='Whether to launch Gazebo GUI'),
+        DeclareLaunchArgument('only_mustard_bottle', default_value='false',
                               description='Spawn only the mustard bottle if true'),
     ]
 
@@ -45,6 +47,9 @@ def launch_setup(context: LaunchContext, *args, **kwargs) -> list:
     seed = int(LaunchConfiguration('seed').perform(context))
 
     actions = []
+    logger = get_logger('launch')
+
+    EXCLUDE_OBJECTS = ['059_chain', '053_mini_soccer_ball']
 
     # ---------------------------
     # Include Gazebo launch file
@@ -54,7 +59,7 @@ def launch_setup(context: LaunchContext, *args, **kwargs) -> list:
         PythonLaunchDescriptionSource(gazebo_launch_file),
         launch_arguments={
             'world_file': world_file,
-            'gazebo_gui': 'False',
+            'gazebo_gui': LaunchConfiguration('gazebo_gui'),
         }.items()
     )
     actions.append(gazebo_launch)
@@ -73,6 +78,9 @@ def launch_setup(context: LaunchContext, *args, **kwargs) -> list:
         sdf_basename = d.split("_", 1)[1] + ".sdf"
         sdf_path = os.path.join(folder_path, sdf_basename)
         if os.path.isfile(sdf_path):
+            if any(excl == d for excl in EXCLUDE_OBJECTS):
+                logger.warn(f"Excluding model: '{d}'")
+                continue
             available_models.append((d, sdf_path))
 
     if not available_models:
