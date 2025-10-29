@@ -32,6 +32,7 @@ export GZ_SIM_RESOURCE_PATH="$REPO_ROOT/gazebo_models:$REPO_ROOT/gazebo_models/y
 export USER="ubuntu"
 export IP=`hostname -I | cut -d ' ' -f 1`
 export RCUTILS_COLORIZED_OUTPUT=1
+export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 
 
 if [[ ! -f "${REPO_ROOT}/.env" ]]; then
