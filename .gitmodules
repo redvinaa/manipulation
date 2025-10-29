@@ -4,3 +4,6 @@
 [submodule "workspace/src/ros2_robotiq_gripper"]
 	path = workspace/src/ros2_robotiq_gripper
 	url = git@github.com:PickNikRobotics/ros2_robotiq_gripper.git
+[submodule "ifopt"]
+	path = ifopt
+	url = https://github.com/ethz-adrl/ifopt.git
