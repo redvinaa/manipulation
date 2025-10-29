@@ -58,7 +58,7 @@ install(TARGETS find_grasp_pose_node
 # === Install ===
 install(
   DIRECTORY include/
-  DESTINATION include
+  DESTINATION include/${PROJECT_NAME}
 )
 
 install(
