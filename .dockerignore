@@ -1,0 +1,5 @@
+/workspace/*
+!/workspace/src
+Dockerfile
+docker-compose.yml
+bags
