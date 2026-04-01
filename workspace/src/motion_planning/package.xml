@@ -19,6 +19,7 @@
   <depend>bin_picking</depend>
   <depend>backward_ros</depend>
   <depend>angles</depend>
+  <depend>opencv2</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

@@ -21,6 +21,7 @@ find_package(bin_picking REQUIRED)
 find_package(ifopt REQUIRED)
 find_package(backward_ros REQUIRED)
 find_package(angles REQUIRED)
+find_package(OpenCV REQUIRED)
 
 set(DEPENDENCIES
   rclcpp
@@ -49,7 +50,11 @@ ament_target_dependencies(rrt_with_optim
   ${DEPENDENCIES}
 )
 
-install(TARGETS 2d_optimization rrt_with_optim
+add_executable(simple_rrt_demo src/simple_rrt_demo.cpp)
+target_link_libraries(simple_rrt_demo ${OpenCV_LIBS})
+ament_target_dependencies(simple_rrt_demo rclcpp)
+
+install(TARGETS 2d_optimization rrt_with_optim simple_rrt_demo
   DESTINATION lib/${PROJECT_NAME}
 )
 
