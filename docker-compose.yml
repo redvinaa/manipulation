@@ -6,7 +6,6 @@ services:
     network_mode: host
     environment:
       - DISPLAY
-      - MAKEFLAGS="-j8"
       - CCACHE_DIR="/home/ubuntu/.cache/ccache"
     logging:
       driver: journald
