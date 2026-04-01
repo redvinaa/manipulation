@@ -3,7 +3,8 @@
 <package format="3">
   <name>motion_planning</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
+  <description>2-D motion planning package: NLP-based trajectory optimisation and C-space
+  visualisation for a two-link planar manipulator in a bin environment.</description>
   <maintainer email="redvinaa@gmail.com">ubuntu</maintainer>
   <license>TODO: License declaration</license>
 
