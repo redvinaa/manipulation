@@ -8,9 +8,10 @@ configuration-space (C-space) exploration of a two-link planar robotic arm.
 ## Overview
 
 | Executable        | Source file                  | Purpose |
-|-------------------|------------------------------|---------|
+|-------------------|------------------------------|----------------------------------------------|
 | `2d_optimization` | `src/2d_optimization.cpp`    | Interactive NLP-based trajectory planning in the task plane |
 | `rrt_with_optim`  | `src/rrt_with_optim.cpp`     | Interactive C-space / task-space exploration of a crowded bin scene |
+| `simple_rrt_demo` | `src/simple_rrt_demo.cpp`    | Step-by-step RRT / RRT* visualisation in a 2-D square world (OpenCV) |
 
 Both nodes use **RViz interactive markers** so the user can drag inputs
 (start, goal, obstacles, or end-effector) and see results update in real time.
@@ -29,6 +30,7 @@ Both nodes use **RViz interactive markers** so the user can drag inputs
 | `tf2_eigen`           | Eigen ↔ ROS transform utilities |
 | `angles`              | Angle normalisation helpers |
 | `ifopt` + IPOPT       | NLP formulation and solver |
+| `OpenCV`              | 2-D visualisation for `simple_rrt_demo` |
 | `bin_picking`         | Shared types / scene description |
 | `backward_ros`        | Pretty crash stack traces |
 
@@ -107,7 +109,50 @@ in `src/rrt_with_optim.cpp`:
 
 ---
 
-## Building
+### `simple_rrt_demo` — step-by-step RRT / RRT* planner
+
+Runs and visualises **RRT** or **RRT\*** in a square 2-D world using an OpenCV
+window.  Obstacles are straight wall segments.  The tree grows step-by-step at
+a configurable rate; once the goal is reached the best path is drawn in green.
+
+- **RRT** stops growing after the first solution is found.
+- **RRT\*** keeps running indefinitely, rewiring the tree to improve path cost;
+  the current best cost is shown live on the display.
+
+![simple_rrt_demo screenshot](simple_rrt_demo_RRT_star.jpg)
+
+#### Published topics
+None — output is purely visual via an OpenCV window.
+
+#### Parameters
+| Parameter       | Type     | Default | Description |
+|-----------------|----------|---------|-------------|
+| `world_size`    | `double` | `10.0`  | Side length of the square world |
+| `start_x`       | `double` | `0.5`   | Start position X |
+| `start_y`       | `double` | `0.5`   | Start position Y |
+| `goal_x`        | `double` | `9.5`   | Goal position X |
+| `goal_y`        | `double` | `9.5`   | Goal position Y |
+| `max_step`      | `double` | `0.5`   | Maximum tree extension step length |
+| `goal_bias`     | `double` | `0.1`   | Probability of sampling the goal directly |
+| `goal_threshold`| `double` | `0.4`   | Distance at which the goal is considered reached |
+| `rrt_star`      | `bool`   | `false` | Enable RRT\* rewiring (vs plain RRT) |
+| `rewire_radius` | `double` | `1.5`   | Neighbourhood radius for RRT\* rewiring |
+| `image_size`    | `int`    | `800`   | OpenCV window size in pixels (square) |
+| `step_delay_ms` | `int`    | `10`    | Milliseconds between visualisation updates |
+| `walls`         | `double[]` | *(zig-zag maze)* | Flat list `[x1,y1,x2,y2, …]` of wall segment endpoints |
+
+#### Visualisation legend
+| Colour | Meaning |
+|--------|---------|
+| Grey | Background |
+| Black | Wall obstacles |
+| Blue | RRT tree edges |
+| Dark green (dots) | Tree nodes |
+| Orange | Start point |
+| Red | Goal point |
+| Bright green | Best path found |
+
+---
 
 ```bash
 cd /path/to/workspace
@@ -133,6 +178,22 @@ Open RViz, add a **MarkerArray** display on `/trajectory_markers` and an
 ros2 run motion_planning rrt_with_optim
 ```
 
+### RRT / RRT* demo
+
+```bash
+# Plain RRT (stops after first solution)
+ros2 run motion_planning simple_rrt_demo
+
+# RRT* (keeps refining — press q or ESC to quit)
+ros2 run motion_planning simple_rrt_demo --ros-args -p rrt_star:=true
+
+# Custom walls and faster stepping
+ros2 run motion_planning simple_rrt_demo --ros-args \
+  -p rrt_star:=true \
+  -p step_delay_ms:=5 \
+  -p "walls:=[0.0,4.0,6.0,4.0, 4.0,7.0,10.0,7.0]"
+```
+
 Open RViz and add:
 - **Map** display on `/configuration_space_occupancy`
 - **MarkerArray** display on `/crowded_scene_markers`
@@ -150,7 +211,8 @@ motion_planning/
 │   └── crowded_scene.hpp      # CrowdedScene: FK, IK, collision, C-space grid
 ├── src/
 │   ├── 2d_optimization.cpp    # TrajPlanning2DNode (interactive NLP planner)
-│   └── rrt_with_optim.cpp     # C-space / task-space explorer node
+│   ├── rrt_with_optim.cpp     # C-space / task-space explorer node
+│   └── simple_rrt_demo.cpp    # RRT / RRT* step-by-step visualiser (OpenCV)
 ├── CMakeLists.txt
 ├── package.xml
 └── README.md
