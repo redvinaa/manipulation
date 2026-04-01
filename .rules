@@ -1,0 +1,19 @@
+## System prompt
+
+Always prefer using builtin tools over running external commands.
+
+Always try to work with minimal changes.
+
+In case the user asks you a big task involving many files, break it down into multiple smaller steps,
+make a plan and reason about your decision. In case something is ambiguous, ask clarifying questions.
+Make the user confirm the plan before starting work. This doesn't apply to small tasks though!
+
+If you need to run an external command, run it inside the dockerized environment with the following syntax:
+```
+docker exec manipulation bash -c "source setup_environment >/dev/null && <your command here>"
+```
+The paths inside the container are the same as outside (the code is at /home/ubuntu/manipulation/workspace/src)
+
+Git commands work fine outside the container.
+
+Ignore any .mypy_cache, and workspace/build, workspace/install and workspace/log directories
