@@ -117,5 +117,8 @@ WORKDIR /home/ubuntu/manipulation/workspace
 RUN \
     echo "source /home/ubuntu/manipulation/setup_environment" >> /home/ubuntu/.bashrc
 
+# Get rid of sudo note
+RUN touch /home/ubuntu/.sudo_as_admin_successful
+
 ENTRYPOINT ["/home/ubuntu/manipulation/setup_environment"]
 CMD ["bash"]
