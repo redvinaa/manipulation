@@ -1,6 +1,6 @@
 # motion_planning
 
-A ROS 2 package that provides two executables for 2-D motion planning and
+A ROS 2 package that provides three executables for 2-D motion planning and
 configuration-space (C-space) exploration of a two-link planar robotic arm.
 
 ---
@@ -8,9 +8,9 @@ configuration-space (C-space) exploration of a two-link planar robotic arm.
 ## Overview
 
 | Executable        | Source file                  | Purpose |
-|-------------------|------------------------------|----------------------------------------------|
+|-------------------|------------------------------|---------|
 | `2d_optimization` | `src/2d_optimization.cpp`    | Interactive NLP-based trajectory planning in the task plane |
-| `rrt_with_optim`  | `src/rrt_with_optim.cpp`     | Interactive C-space / task-space exploration of a crowded bin scene |
+| `cspace_explorer` | `src/cspace_explorer.cpp`    | Interactive C-space visualisation of a two-link arm in a bin scene |
 | `simple_rrt_demo` | `src/simple_rrt_demo.cpp`    | Step-by-step RRT / RRT* visualisation in a 2-D square world (OpenCV) |
 
 Both nodes use **RViz interactive markers** so the user can drag inputs
@@ -74,30 +74,21 @@ is used as a warm-start on each re-plan to improve convergence speed.
 
 ---
 
-### `rrt_with_optim` — C-space / task-space explorer
+### `cspace_explorer` — interactive C-space visualiser
 
 Models a **two-link planar arm** inside a U-shaped bin.  At start-up it
 computes the full C-space occupancy grid (1 000 × 1 000 collision checks)
 and publishes it as a `nav_msgs/OccupancyGrid`.  The user can then drag
-an interactive marker to explore arm configurations.
-
-#### Exploration modes
-
-The mode is selected at compile time via the `CONTROL_CONFIG_SPACE` constant
-in `src/rrt_with_optim.cpp`:
-
-| Value  | Mode | Marker semantics |
-|--------|------|-----------------|
-| `true` (default) | **C-space** | Marker XY → (θ₁, θ₂) mapped linearly over [−π, π] |
-| `false` | **Task-space** | Marker XY → desired end-effector position; solved via closed-form IK |
+an interactive marker whose XY position is linearly mapped to (θ₁, θ₂),
+moving the arm through configuration space in real time.
 
 #### Published topics
 | Topic                           | Type                              | Description |
 |---------------------------------|-----------------------------------|-------------|
-| `configuration_space_occupancy` | `nav_msgs/OccupancyGrid`          | Precomputed C-space collision map |
+| `configuration_space_occupancy` | `nav_msgs/OccupancyGrid`          | Precomputed C-space collision map (latched) |
 | `crowded_scene_markers`         | `visualization_msgs/MarkerArray`  | Bin walls + current arm pose |
 
-#### Parameters (from `motion_planning::CrowdedScene`)
+#### Parameters
 | Parameter                | Type     | Default | Description |
 |--------------------------|----------|---------|-------------|
 | `root_link_length`       | `double` | `1.0`   | First link length (m) |
@@ -172,11 +163,16 @@ ros2 run motion_planning 2d_optimization \
 Open RViz, add a **MarkerArray** display on `/trajectory_markers` and an
 **InteractiveMarkers** display on `/traj_planning_markers/update`.
 
-### C-space explorer
+### C-space visualiser
 
 ```bash
-ros2 run motion_planning rrt_with_optim
+ros2 run motion_planning cspace_explorer
 ```
+
+Open RViz and add:
+- **Map** display on `/configuration_space_occupancy`
+- **MarkerArray** display on `/crowded_scene_markers`
+- **InteractiveMarkers** display on `/end_effector_marker/update`
 
 ### RRT / RRT* demo
 
@@ -194,11 +190,6 @@ ros2 run motion_planning simple_rrt_demo --ros-args \
   -p "walls:=[0.0,4.0,6.0,4.0, 4.0,7.0,10.0,7.0]"
 ```
 
-Open RViz and add:
-- **Map** display on `/configuration_space_occupancy`
-- **MarkerArray** display on `/crowded_scene_markers`
-- **InteractiveMarkers** display on `/end_effector_marker/update`
-
 ---
 
 ## Architecture
@@ -211,7 +202,7 @@ motion_planning/
 │   └── crowded_scene.hpp      # CrowdedScene: FK, IK, collision, C-space grid
 ├── src/
 │   ├── 2d_optimization.cpp    # TrajPlanning2DNode (interactive NLP planner)
-│   ├── rrt_with_optim.cpp     # C-space / task-space explorer node
+│   ├── cspace_explorer.cpp    # C-space visualiser node
 │   └── simple_rrt_demo.cpp    # RRT / RRT* step-by-step visualiser (OpenCV)
 ├── CMakeLists.txt
 ├── package.xml
@@ -237,7 +228,7 @@ motion_planning/
 - `LineCollisionConstraint` uses an **approximate Jacobian** (∂t/∂p ≈ 0)
   and is disabled by default.  Enable it in `plan2DTrajectory()` for stricter
   collision avoidance at the cost of slower convergence.
-- The C-space grid computation in `rrt_with_optim` is **blocking** and takes
+- The C-space grid computation in `cspace_explorer` is **blocking** and takes
   a few seconds for the default 1 000 × 1 000 resolution; reduce `n_divs`
   for faster startup.
 - IPOPT `print_level` is set to `2` (minimal output).  Change it in

@@ -1,6 +1,6 @@
 /**
- * @file rrt_with_optim.cpp
- * @brief ROS 2 node for interactive C-space exploration of a crowded 2-D scene.
+ * @file cspace_explorer.cpp
+ * @brief ROS 2 node for interactive C-space visualisation of a two-link planar arm.
  *
  * This node visualises the configuration space (C-space) of a two-link
  * planar manipulator operating inside a U-shaped bin (see
@@ -8,22 +8,11 @@
  * occupancy grid once at start-up and then lets the user drag an interactive
  * marker to explore arm configurations in real time.
  *
- * Two exploration modes are compiled in and selected via the
- * `CONTROL_CONFIG_SPACE` constant:
- *
- * - **C-space mode** (`CONTROL_CONFIG_SPACE = true`, default):
- *   The marker XY position is linearly mapped to (θ1, θ2) and the arm is
- *   visualised directly.  This is the primary mode used to inspect the
- *   occupancy grid.
- *
- * - **Task-space mode** (`CONTROL_CONFIG_SPACE = false`):
- *   The marker XY position is treated as a desired end-effector position
- *   and inverse kinematics is solved analytically.  If the preferred
- *   (collision-free) IK solution is in collision, the alternative solution
- *   is used instead.
+ * The marker XY position is linearly mapped to (θ1, θ2) and the arm is
+ * visualised directly in the bin scene.
  *
  * ### ROS 2 node name
- * `crowded_scene_with_marker`
+ * `cspace_explorer`
  *
  * ### Published topics
  * | Topic                          | Type                           | Description                      |
@@ -54,10 +43,12 @@ int main(int argc, char ** argv)
   auto node = std::make_shared<rclcpp::Node>("crowded_scene_with_marker");
 
   // ---- Publish the C-space occupancy grid once at start-up ----
-  // The grid is expensive to compute (1000×1000 collision checks) so it is
-  // computed once and latched via a publisher with queue depth 1.
+  // Transient-local durability ensures late-joining subscribers (e.g. RViz)
+  // receive the message even after it was published.
+  rclcpp::QoS map_qos(1);
+  map_qos.transient_local();
   auto occupancy_pub =
-    node->create_publisher<nav_msgs::msg::OccupancyGrid>("configuration_space_occupancy", 1);
+    node->create_publisher<nav_msgs::msg::OccupancyGrid>("configuration_space_occupancy", map_qos);
 
   motion_planning::CrowdedScene crowded_scene(node);
   auto grid = crowded_scene.getOccupancyGrid();

@@ -44,9 +44,9 @@ ament_target_dependencies(2d_optimization
   ${DEPENDENCIES}
 )
 
-add_executable(rrt_with_optim src/rrt_with_optim.cpp)
-target_link_libraries(rrt_with_optim ifopt::ifopt_ipopt ifopt::ifopt_core)
-ament_target_dependencies(rrt_with_optim
+add_executable(cspace_explorer src/cspace_explorer.cpp)
+target_link_libraries(cspace_explorer ifopt::ifopt_ipopt ifopt::ifopt_core)
+ament_target_dependencies(cspace_explorer
   ${DEPENDENCIES}
 )
 
@@ -54,7 +54,7 @@ add_executable(simple_rrt_demo src/simple_rrt_demo.cpp)
 target_link_libraries(simple_rrt_demo ${OpenCV_LIBS})
 ament_target_dependencies(simple_rrt_demo rclcpp)
 
-install(TARGETS 2d_optimization rrt_with_optim simple_rrt_demo
+install(TARGETS 2d_optimization cspace_explorer simple_rrt_demo
   DESTINATION lib/${PROJECT_NAME}
 )
 
