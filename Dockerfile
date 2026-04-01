@@ -71,6 +71,15 @@ RUN \
     colcon metadata update
 
 
+# Build ifopt from source
+RUN git clone https://github.com/ethz-adrl/ifopt.git && \
+    cd ifopt && \
+    mkdir build && \
+    cd build && \
+    cmake .. && \
+    make && \
+    make install
+
 # Install dependencies
 WORKDIR /home/ubuntu/manipulation/workspace
 COPY --from=cacher /tmp/manipulation/workspace/src ./src
@@ -81,7 +90,7 @@ RUN \
     apt update && \
     rosdep update && \
     rosdep install -y --from-paths src --ignore-src --rosdistro=$ROS_DISTRO \
-        --skip-keys slam_toolbox
+        --skip-keys "slam_toolbox osqp"
 
 
 # Install pip packages
