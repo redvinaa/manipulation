@@ -35,9 +35,7 @@ export RCUTILS_COLORIZED_OUTPUT=1
 export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 
 
-if [[ ! -f "${REPO_ROOT}/.env" ]]; then
-  print_warning ".env file missing"
-else
+if [[ -f "${REPO_ROOT}/.env" ]]; then
     set -a
     source $REPO_ROOT/.env
     set +a
